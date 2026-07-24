@@ -100,6 +100,11 @@
   .mt{margin-top:16px;}
   .flexwrap{display:flex; gap:8px; flex-wrap:wrap;}
 
+  /* Custom quiz chips */
+  .chip{border:1px solid var(--border); background:var(--surface2); color:var(--muted); padding:9px 16px; border-radius:20px; cursor:pointer; font-size:14px; transition:.15s; user-select:none;}
+  .chip:hover{border-color:var(--accent);}
+  .chip.on{border-color:var(--accent); background:rgba(79,143,247,.14); color:var(--text); font-weight:600;}
+
   /* Lock screen */
   #lock{position:fixed; inset:0; z-index:999; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:20px;}
   #lock .card{max-width:360px; width:100%; text-align:center;}
@@ -183,6 +188,9 @@ const UI = {
     best:"Best exam score", none:"—", mistakes:"mistakes saved", shuffle:"Questions and answer order are shuffled each time.",
     no_q:"No questions loaded for this domain yet.", your_answer:"Your answer", skipped:"(no answer)",
     domain:"Domain", weight:"exam weight",
+    custom_card:"Custom quiz", custom_meta:"Pick your domains and how many questions — random every time",
+    custom_title:"Custom quiz", custom_pick:"Which domains?", custom_n:"How many questions?",
+    all_of_them:"All", available:"available", start_quiz:"Start quiz", first_time:"first time",
   },
   fr:{ sub:"Identity and Access Administrator", theory:"📖 Théorie", exam:"⏱ Examen blanc", reset:"↺ Réinitialiser",
     home_title:"Choisis un domaine à étudier", study:"Mode étude", answered:"répondues", correctW:"correctes",
@@ -199,6 +207,9 @@ const UI = {
     best:"Meilleur score d'examen", none:"—", mistakes:"erreurs enregistrées", shuffle:"Les questions et l'ordre des réponses sont mélangés à chaque fois.",
     no_q:"Aucune question chargée pour ce domaine pour l'instant.", your_answer:"Ta réponse", skipped:"(pas de réponse)",
     domain:"Domaine", weight:"du score",
+    custom_card:"Quiz personnalisé", custom_meta:"Choisis tes domaines et le nombre de questions — aléatoire à chaque fois",
+    custom_title:"Quiz personnalisé", custom_pick:"Quels domaines ?", custom_n:"Combien de questions ?",
+    all_of_them:"Toutes", available:"disponibles", start_quiz:"Lancer le quiz", first_time:"première fois",
   }
 };
 const t = k => UI[LANG][k] || k;
@@ -258,6 +269,7 @@ function go(screen, arg){
   if(screen==="home") renderHome();
   if(screen==="theoryList") renderTheoryList();
   if(screen==="theory") renderTheory(arg);
+  if(screen==="custom") renderCustom();
   render_lang_static();
   window.scrollTo(0,0);
 }
@@ -279,6 +291,7 @@ function rerender(){
   if(s==="home") renderHome();
   else if(s==="theoryList") renderTheoryList();
   else if(s==="theory") renderTheory(state.theoryDomain);
+  else if(s==="custom") renderCustom();
   else if(s==="quiz") renderQuestion();
   else if(s==="examIntro") renderExamIntro();
   else if(s==="exam") renderQuestion();
@@ -305,9 +318,9 @@ function renderHome(){
   }
   html += `</div>
   <div class="grid cols2 mt">
-    <div class="card domain-card" onclick="startStudy(0)">
-      <h3>🔀 ${t("all_title")}</h3>
-      <div class="meta">${allQuestions().length} ${t("questions")} — ${t("shuffle")}</div>
+    <div class="card domain-card" onclick="go('custom')">
+      <h3>🎛 ${t("custom_card")}</h3>
+      <div class="meta">${allQuestions().length} ${t("questions")} — ${t("custom_meta")}</div>
     </div>
     <div class="card domain-card" onclick="startReview()">
       <h3>🎯 ${t("review_title")}</h3>
@@ -333,6 +346,52 @@ function startReview(){
   if(!qs.length){ alert(t("review_none")); return; }
   state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
   renderQuestion();
+}
+
+/* ============ CUSTOM QUIZ ============ */
+let customCfg = store.get("customCfg", {doms:[1,2,3,4], count:10});
+function renderCustom(){
+  state.screen = "custom";
+  const avail = customCfg.doms.flatMap(bank).length;
+  const domChips = DOMAINS.map(d =>
+    `<span class="chip ${customCfg.doms.includes(d.id)?'on':''}" onclick="toggleDom(${d.id})">${d.id}. ${esc(L(d.name))}</span>`
+  ).join("");
+  const counts = [5,10,20,30,50];
+  const countChips = counts.map(n =>
+    `<span class="chip ${customCfg.count===n?'on':''}" onclick="setCount(${n})">${n}</span>`
+  ).join("") + `<span class="chip ${customCfg.count==='all'?'on':''}" onclick="setCount('all')">${t("all_of_them")}</span>`;
+  view().innerHTML = `
+  <span class="backlink" onclick="go('home')">${t("back_home")}</span>
+  <div class="card">
+    <h2 style="font-size:20px; margin-bottom:4px;">🎛 ${t("custom_title")}</h2>
+    <div class="meta">${t("shuffle")}</div>
+    <div class="section-title">${t("custom_pick")}</div>
+    <div class="flexwrap">${domChips}</div>
+    <div class="section-title">${t("custom_n")}</div>
+    <div class="flexwrap">${countChips}</div>
+    <div class="meta mt">${avail} ${t("questions")} ${t("available")}</div>
+    <div class="mt">
+      <button class="btn primary" onclick="startCustom()" ${customCfg.doms.length?"":"disabled"}>${t("start_quiz")} →</button>
+    </div>
+  </div>`;
+}
+function toggleDom(id){
+  customCfg.doms = customCfg.doms.includes(id) ? customCfg.doms.filter(x=>x!==id) : customCfg.doms.concat(id).sort();
+  store.set("customCfg", customCfg);
+  renderCustom();
+}
+function setCount(n){
+  customCfg.count = n;
+  store.set("customCfg", customCfg);
+  renderCustom();
+}
+function startCustom(){
+  let qs = shuffle(customCfg.doms.flatMap(bank));
+  if(!qs.length){ alert(t("no_q")); return; }
+  if(customCfg.count !== "all") qs = qs.slice(0, customCfg.count);
+  state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
+  renderQuestion();
+  window.scrollTo(0,0);
 }
 
 /* ============ EXAM ============ */
@@ -475,13 +534,19 @@ function renderQuestion(){
       : `<button class="btn primary" onclick="checkAnswer()" ${state.selected.length?"":"disabled"}>${t("submit")}</button>`;
   }
 
+  const st = progress[q.id];
+  const statsPill = isExam ? "" :
+    (st && st.seen
+      ? `<span class="pill">📊 <span style="color:var(--good)">✔ ${st.ok}</span> · <span style="color:var(--bad)">✘ ${st.seen - st.ok}</span></span>`
+      : `<span class="pill">📊 ${t("first_time")}</span>`);
+
   view().innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
     <span class="backlink" onclick="go('home')" style="margin:0;">${t("quit")}</span>
     ${isExam?`<span class="timer" id="timer">--:--</span>`:""}
   </div>
   <div class="card">
-    <span class="pill">${t("domain")} ${q.domain} — ${esc(L(dName.name))}</span><span class="pill topic">${esc(q.topic)}</span>
+    <span class="pill">${t("domain")} ${q.domain} — ${esc(L(dName.name))}</span><span class="pill topic">${esc(q.topic)}</span>${statsPill}
     <div class="qtext">${esc(L(q.q))}${multi?`\n<span style="color:var(--warn);font-size:13px;font-weight:400;">${t("multi_hint")}</span>`:""}</div>
     ${opts}
     ${explain}
