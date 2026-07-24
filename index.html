@@ -191,6 +191,7 @@ const UI = {
     custom_card:"Custom quiz", custom_meta:"Pick your domains and how many questions — random every time",
     custom_title:"Custom quiz", custom_pick:"Which domains?", custom_n:"How many questions?",
     all_of_them:"All", available:"available", start_quiz:"Start quiz", first_time:"first time",
+    custom_timer:"Timer? (whole session)", no_timer:"None", min:"min",
   },
   fr:{ sub:"Identity and Access Administrator", theory:"📖 Théorie", exam:"⏱ Examen blanc", reset:"↺ Réinitialiser",
     home_title:"Choisis un domaine à étudier", study:"Mode étude", answered:"répondues", correctW:"correctes",
@@ -210,6 +211,7 @@ const UI = {
     custom_card:"Quiz personnalisé", custom_meta:"Choisis tes domaines et le nombre de questions — aléatoire à chaque fois",
     custom_title:"Quiz personnalisé", custom_pick:"Quels domaines ?", custom_n:"Combien de questions ?",
     all_of_them:"Toutes", available:"disponibles", start_quiz:"Lancer le quiz", first_time:"première fois",
+    custom_timer:"Chrono ? (toute la session)", no_timer:"Sans", min:"min",
   }
 };
 const t = k => UI[LANG][k] || k;
@@ -349,7 +351,8 @@ function startReview(){
 }
 
 /* ============ CUSTOM QUIZ ============ */
-let customCfg = store.get("customCfg", {doms:[1,2,3,4], count:10});
+let customCfg = store.get("customCfg", {doms:[1,2,3,4], count:10, timer:0});
+if(customCfg.timer === undefined) customCfg.timer = 0;
 function renderCustom(){
   state.screen = "custom";
   const avail = customCfg.doms.flatMap(bank).length;
@@ -360,6 +363,10 @@ function renderCustom(){
   const countChips = counts.map(n =>
     `<span class="chip ${customCfg.count===n?'on':''}" onclick="setCount(${n})">${n}</span>`
   ).join("") + `<span class="chip ${customCfg.count==='all'?'on':''}" onclick="setCount('all')">${t("all_of_them")}</span>`;
+  const timerChips = `<span class="chip ${customCfg.timer===0?'on':''}" onclick="setTimerMin(0)">${t("no_timer")}</span>` +
+    [5,10,15,30].map(m =>
+      `<span class="chip ${customCfg.timer===m?'on':''}" onclick="setTimerMin(${m})">${m} ${t("min")}</span>`
+    ).join("");
   view().innerHTML = `
   <span class="backlink" onclick="go('home')">${t("back_home")}</span>
   <div class="card">
@@ -369,6 +376,8 @@ function renderCustom(){
     <div class="flexwrap">${domChips}</div>
     <div class="section-title">${t("custom_n")}</div>
     <div class="flexwrap">${countChips}</div>
+    <div class="section-title">⏱ ${t("custom_timer")}</div>
+    <div class="flexwrap">${timerChips}</div>
     <div class="meta mt">${avail} ${t("questions")} ${t("available")}</div>
     <div class="mt">
       <button class="btn primary" onclick="startCustom()" ${customCfg.doms.length?"":"disabled"}>${t("start_quiz")} →</button>
@@ -385,11 +394,20 @@ function setCount(n){
   store.set("customCfg", customCfg);
   renderCustom();
 }
+function setTimerMin(m){
+  customCfg.timer = m;
+  store.set("customCfg", customCfg);
+  renderCustom();
+}
 function startCustom(){
   let qs = shuffle(customCfg.doms.flatMap(bank));
   if(!qs.length){ alert(t("no_q")); return; }
   if(customCfg.count !== "all") qs = qs.slice(0, customCfg.count);
   state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
+  if(customCfg.timer > 0){
+    state.endsAt = Date.now() + customCfg.timer * 60 * 1000;
+    state.timerId = setInterval(tickTimer, 1000);
+  }
   renderQuestion();
   window.scrollTo(0,0);
 }
@@ -419,11 +437,16 @@ function beginExam(){
 function tickTimer(){
   const el = document.getElementById("timer");
   const ms = state.endsAt - Date.now();
-  if(ms <= 0){ clearInterval(state.timerId); alert(t("time_up")); finishExam(); return; }
+  if(ms <= 0){
+    clearInterval(state.timerId);
+    alert(t("time_up"));
+    if(state.mode === "exam") finishExam(); else go("home");
+    return;
+  }
   if(el){
     const s = Math.floor(ms/1000);
     el.textContent = String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
-    el.classList.toggle("low", s < 600);
+    el.classList.toggle("low", s < (state.mode==="exam" ? 600 : 60));
   }
 }
 function finishExam(){
@@ -543,7 +566,7 @@ function renderQuestion(){
   view().innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
     <span class="backlink" onclick="go('home')" style="margin:0;">${t("quit")}</span>
-    ${isExam?`<span class="timer" id="timer">--:--</span>`:""}
+    ${state.endsAt?`<span class="timer" id="timer">--:--</span>`:""}
   </div>
   <div class="card">
     <span class="pill">${t("domain")} ${q.domain} — ${esc(L(dName.name))}</span><span class="pill topic">${esc(q.topic)}</span>${statsPill}
@@ -555,7 +578,7 @@ function renderQuestion(){
       <div class="flexwrap">${navBtns}</div>
     </div>
   </div>`;
-  if(isExam) tickTimer();
+  if(state.endsAt) tickTimer();
 }
 function pick(j){
   if(state.locked) return;
