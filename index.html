@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SC-300 Prep — Microsoft Identity and Access Administrator</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#171a23; --surface2:#1e2230; --border:#2a2f42;
+    --text:#e8eaf2; --muted:#9aa1b5; --accent:#4f8ff7; --accent2:#7c5cff;
+    --good:#2ecc80; --bad:#ff5c6c; --warn:#f7b955;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:"Segoe UI",system-ui,sans-serif; line-height:1.55; min-height:100vh;}
+  a{color:var(--accent);}
+  .app{max-width:960px; margin:0 auto; padding:20px 16px 80px;}
+
+  header.topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0 22px; flex-wrap:wrap;}
+  .brand{display:flex; align-items:center; gap:10px; cursor:pointer;}
+  .brand .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
+  .brand h1{font-size:18px;}
+  .brand small{display:block;color:var(--muted);font-weight:400;font-size:12px;}
+  .topbtns{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .btn{border:1px solid var(--border); background:var(--surface); color:var(--text); padding:9px 16px; border-radius:10px; cursor:pointer; font-size:14px; transition:.15s;}
+  .btn:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; font-weight:600;}
+  .btn.small{padding:6px 12px; font-size:13px;}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+  .btn.lang{min-width:64px; font-weight:700;}
+
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; margin-bottom:16px;}
+  .grid{display:grid; gap:14px;}
+  @media(min-width:700px){ .grid.cols2{grid-template-columns:1fr 1fr;} }
+
+  .domain-card{cursor:pointer; transition:.15s; position:relative;}
+  .domain-card:hover{border-color:var(--accent); transform:translateY(-2px);}
+  .domain-card h3{font-size:15px; margin-bottom:6px;}
+  .domain-card .pct{position:absolute; top:16px; right:16px; font-size:12px; color:var(--muted); background:var(--surface2); padding:3px 9px; border-radius:20px;}
+  .progressbar{height:7px; background:var(--surface2); border-radius:6px; overflow:hidden; margin-top:12px;}
+  .progressbar > div{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:6px; transition:width .3s;}
+  .meta{font-size:12.5px; color:var(--muted); margin-top:8px;}
+
+  .pill{display:inline-block; font-size:11.5px; padding:3px 10px; border-radius:20px; background:var(--surface2); color:var(--muted); margin-right:6px; margin-bottom:4px;}
+  .pill.topic{color:var(--accent);}
+
+  /* Quiz */
+  .qtext{font-size:16.5px; font-weight:600; margin:14px 0 18px; white-space:pre-wrap;}
+  .opt{display:flex; gap:12px; align-items:flex-start; border:1px solid var(--border); background:var(--surface2); border-radius:12px; padding:13px 15px; margin-bottom:10px; cursor:pointer; transition:.12s; font-size:14.5px;}
+  .opt:hover{border-color:var(--accent);}
+  .opt .letter{flex:0 0 26px; height:26px; border-radius:8px; background:var(--surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700; color:var(--muted);}
+  .opt.selected{border-color:var(--accent); background:rgba(79,143,247,.10);}
+  .opt.selected .letter{border-color:var(--accent); color:var(--accent);}
+  .opt.correct{border-color:var(--good); background:rgba(46,204,128,.10);}
+  .opt.correct .letter{border-color:var(--good); color:var(--good);}
+  .opt.wrong{border-color:var(--bad); background:rgba(255,92,108,.10);}
+  .opt.wrong .letter{border-color:var(--bad); color:var(--bad);}
+  .opt.locked{cursor:default;}
+
+  .explain{border-left:4px solid var(--accent); background:var(--surface2); border-radius:0 12px 12px 0; padding:16px 18px; margin-top:16px; font-size:14.5px; white-space:pre-wrap;}
+  .explain .verdict{font-weight:700; margin-bottom:8px;}
+  .explain .verdict.ok{color:var(--good);}
+  .explain .verdict.ko{color:var(--bad);}
+
+  .quiznav{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .qcounter{color:var(--muted); font-size:13.5px;}
+
+  .timer{font-variant-numeric:tabular-nums; font-weight:700; font-size:15px; padding:7px 14px; border-radius:10px; background:var(--surface2); border:1px solid var(--border);}
+  .timer.low{color:var(--bad); border-color:var(--bad);}
+
+  /* Theory */
+  .theory h2{font-size:20px; margin-bottom:4px;}
+  .theory h3{font-size:16px; color:var(--accent); margin:22px 0 8px;}
+  .theory h4{font-size:14.5px; color:var(--accent2); margin:16px 0 6px;}
+  .theory p{margin:8px 0; font-size:14.5px;}
+  .theory ul{margin:8px 0 8px 22px; font-size:14.5px;}
+  .theory li{margin:4px 0;}
+  .theory table{border-collapse:collapse; width:100%; margin:12px 0; font-size:13.5px;}
+  .theory th,.theory td{border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:top;}
+  .theory th{background:var(--surface2); color:var(--accent);}
+  .theory code{background:var(--surface2); padding:2px 6px; border-radius:6px; font-size:13px; color:var(--warn);}
+  .theory .tip{border-left:4px solid var(--warn); background:rgba(247,185,85,.07); padding:12px 15px; border-radius:0 10px 10px 0; margin:12px 0; font-size:14px;}
+
+  /* Results */
+  .score-big{font-size:52px; font-weight:800; text-align:center; margin:10px 0;}
+  .score-big.pass{color:var(--good);}
+  .score-big.fail{color:var(--bad);}
+  .score-sub{text-align:center; color:var(--muted); margin-bottom:20px;}
+
+  .backlink{color:var(--muted); cursor:pointer; font-size:13.5px; margin-bottom:14px; display:inline-block;}
+  .backlink:hover{color:var(--accent);}
+  .section-title{font-size:17px; font-weight:700; margin:22px 0 12px;}
+  .statrow{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+  .stat{flex:1; min-width:130px; background:var(--surface2); border-radius:12px; padding:14px; text-align:center;}
+  .stat .v{font-size:22px; font-weight:800;}
+  .stat .l{font-size:12px; color:var(--muted); margin-top:2px;}
+  .center{text-align:center;}
+  .mt{margin-top:16px;}
+  .flexwrap{display:flex; gap:8px; flex-wrap:wrap;}
+
+  /* Lock screen */
+  #lock{position:fixed; inset:0; z-index:999; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:20px;}
+  #lock .card{max-width:360px; width:100%; text-align:center;}
+  #lock .logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;margin:0 auto 16px;}
+  #lock input{width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:15px; margin:14px 0 12px; text-align:center;}
+  #lock input:focus{outline:none; border-color:var(--accent);}
+  #lockErr{color:var(--bad); font-size:13px; min-height:18px; margin-top:10px;}
+</style>
+</head>
+<body>
+<div id="lock">
+  <div class="card">
+    <div class="logo">SC<br>300</div>
+    <h2 style="font-size:18px;">SC-300 Prep</h2>
+    <p style="color:var(--muted); font-size:14px; margin-top:6px;">Enter password / Entre le mot de passe</p>
+    <input type="password" id="lockPw" autocomplete="current-password" autofocus>
+    <button class="btn primary" style="width:100%;" onclick="tryUnlock()">Unlock</button>
+    <div id="lockErr"></div>
+  </div>
+</div>
+<script>
+"use strict";
+const LOCK_HASH = "e1b432b368aa91fd5174eee99e41e93b2db98be63426de070e7a9be789f30b47";
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function tryUnlock(){
+  const pw = document.getElementById("lockPw").value.trim();
+  if(await sha256Hex(pw) === LOCK_HASH){
+    localStorage.setItem("sc300_unlock", LOCK_HASH);
+    document.getElementById("lock").style.display = "none";
+  } else {
+    document.getElementById("lockErr").textContent = "Wrong password / Mauvais mot de passe";
+    document.getElementById("lockPw").value = "";
+  }
+}
+document.getElementById("lockPw").addEventListener("keydown", e => { if(e.key === "Enter") tryUnlock(); });
+if(localStorage.getItem("sc300_unlock") === LOCK_HASH){
+  document.getElementById("lock").style.display = "none";
+}
+</script>
+<div class="app">
+  <header class="topbar">
+    <div class="brand" onclick="go('home')">
+      <div class="logo">SC<br>300</div>
+      <h1>SC-300 Prep<small id="subT"></small></h1>
+    </div>
+    <div class="topbtns">
+      <button class="btn small" id="navTheory" onclick="go('theoryList')"></button>
+      <button class="btn small" id="navExam" onclick="startExam()"></button>
+      <button class="btn small ghost" id="navReset" onclick="resetProgress()"></button>
+      <button class="btn small lang" id="langBtn" onclick="toggleLang()">🌐 FR</button>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<script src="data/theory.js"></script>
+<script src="data/questions-d1.js"></script>
+<script src="data/questions-d2.js"></script>
+<script src="data/questions-d3.js"></script>
+<script src="data/questions-d4.js"></script>
+<script>
+"use strict";
+/* ============ i18n ============ */
+let LANG = localStorage.getItem("sc300_lang") || "en";
+const UI = {
+  en:{ sub:"Identity and Access Administrator", theory:"📖 Theory", exam:"⏱ Mock exam", reset:"↺ Reset",
+    home_title:"Choose a domain to study", study:"Study mode", answered:"answered", correctW:"correct",
+    all_title:"All domains (mixed)", review_title:"Review my mistakes", review_none:"No mistakes to review — nice!",
+    submit:"Check answer", next:"Next question", prev:"Previous", finish:"Finish", quit:"← Quit",
+    correct:"✔ Correct!", incorrect:"✘ Incorrect", correct_is:"Correct answer(s):",
+    multi_hint:"(Select ALL answers that apply)",
+    exam_intro_t:"Mock exam", exam_intro:"50 random questions weighted like the real exam. 100 minutes. Score out of 1000 — you need 700 to pass. Explanations are shown at the end.",
+    start:"Start exam", q:"Question", of:"of", time_up:"⏰ Time is up! Your exam was submitted automatically.",
+    result_pass:"PASS 🎉", result_fail:"FAIL — keep practicing!", your_score:"Estimated score (700 needed to pass)",
+    stats_ok:"Correct", stats_ko:"Wrong", stats_skip:"Unanswered", by_domain:"Results by domain",
+    review_exam:"Review answers & explanations", back_home:"← Back to home", theory_pick:"Pick a domain to read the theory",
+    read:"Read theory", questions:"questions", progress:"Progress", confirm_reset:"Delete all your progress (study stats + exam history)?",
+    best:"Best exam score", none:"—", mistakes:"mistakes saved", shuffle:"Questions and answer order are shuffled each time.",
+    no_q:"No questions loaded for this domain yet.", your_answer:"Your answer", skipped:"(no answer)",
+    domain:"Domain", weight:"exam weight",
+  },
+  fr:{ sub:"Identity and Access Administrator", theory:"📖 Théorie", exam:"⏱ Examen blanc", reset:"↺ Réinitialiser",
+    home_title:"Choisis un domaine à étudier", study:"Mode étude", answered:"répondues", correctW:"correctes",
+    all_title:"Tous les domaines (mélangés)", review_title:"Revoir mes erreurs", review_none:"Aucune erreur à revoir — bravo !",
+    submit:"Vérifier la réponse", next:"Question suivante", prev:"Précédente", finish:"Terminer", quit:"← Quitter",
+    correct:"✔ Correct !", incorrect:"✘ Incorrect", correct_is:"Bonne(s) réponse(s) :",
+    multi_hint:"(Sélectionne TOUTES les réponses qui s'appliquent)",
+    exam_intro_t:"Examen blanc", exam_intro:"50 questions aléatoires pondérées comme le vrai examen. 100 minutes. Score sur 1000 — il faut 700 pour réussir. Les explications sont montrées à la fin.",
+    start:"Démarrer l'examen", q:"Question", of:"sur", time_up:"⏰ Temps écoulé ! Ton examen a été soumis automatiquement.",
+    result_pass:"RÉUSSI 🎉", result_fail:"ÉCHOUÉ — continue à t'entraîner !", your_score:"Score estimé (700 requis pour réussir)",
+    stats_ok:"Correctes", stats_ko:"Fausses", stats_skip:"Sans réponse", by_domain:"Résultats par domaine",
+    review_exam:"Revoir les réponses & explications", back_home:"← Retour à l'accueil", theory_pick:"Choisis un domaine pour lire la théorie",
+    read:"Lire la théorie", questions:"questions", progress:"Progression", confirm_reset:"Supprimer toute ta progression (stats d'étude + historique d'examens) ?",
+    best:"Meilleur score d'examen", none:"—", mistakes:"erreurs enregistrées", shuffle:"Les questions et l'ordre des réponses sont mélangés à chaque fois.",
+    no_q:"Aucune question chargée pour ce domaine pour l'instant.", your_answer:"Ta réponse", skipped:"(pas de réponse)",
+    domain:"Domaine", weight:"du score",
+  }
+};
+const t = k => UI[LANG][k] || k;
+const L = obj => (obj && (obj[LANG] || obj.en)) || "";
+
+const DOMAINS = [
+  {id:1, weight:"20–25%", examCount:11, name:{en:"Implement and manage user identities", fr:"Implémenter et gérer les identités utilisateur"},
+   topics:{en:"Tenant, roles, admin units, users & groups, external identities (B2B), hybrid identity (Entra Connect)", fr:"Tenant, rôles, administrative units, utilisateurs & groupes, identités externes (B2B), identité hybride (Entra Connect)"}},
+  {id:2, weight:"25–30%", examCount:14, name:{en:"Implement authentication and access management", fr:"Implémenter l'authentification et la gestion des accès"},
+   topics:{en:"Auth methods, MFA, SSPR, Conditional Access, ID Protection, Global Secure Access", fr:"Méthodes d'authentification, MFA, SSPR, Conditional Access, ID Protection, Global Secure Access"}},
+  {id:3, weight:"20–25%", examCount:12, name:{en:"Plan and implement workload identities", fr:"Planifier et implémenter les workload identities"},
+   topics:{en:"Managed identities, enterprise apps, app registrations, Defender for Cloud Apps", fr:"Managed identities, enterprise apps, app registrations, Defender for Cloud Apps"}},
+  {id:4, weight:"20–25%", examCount:13, name:{en:"Plan and automate identity governance", fr:"Planifier et automatiser la gouvernance des identités"},
+   topics:{en:"Entitlement management, access reviews, PIM, monitoring & logs", fr:"Entitlement management, access reviews, PIM, monitoring & logs"}},
+];
+
+function bank(d){
+  const b = {1:window.SC300_QUESTIONS_D1, 2:window.SC300_QUESTIONS_D2, 3:window.SC300_QUESTIONS_D3, 4:window.SC300_QUESTIONS_D4}[d];
+  return Array.isArray(b) ? b : [];
+}
+function allQuestions(){ return [1,2,3,4].flatMap(bank); }
+
+/* ============ storage ============ */
+const store = {
+  get(k, def){ try{ return JSON.parse(localStorage.getItem("sc300_"+k)) ?? def; }catch(e){ return def; } },
+  set(k, v){ localStorage.setItem("sc300_"+k, JSON.stringify(v)); }
+};
+let progress = store.get("progress", {});   // {qid:{seen:n, ok:n, lastCorrect:bool}}
+let bestScore = store.get("best", null);
+
+function recordAnswer(qid, ok){
+  const p = progress[qid] || {seen:0, ok:0};
+  p.seen++; if(ok) p.ok++;
+  p.lastCorrect = ok;
+  progress[qid] = p;
+  store.set("progress", progress);
+}
+function resetProgress(){
+  if(confirm(t("confirm_reset"))){
+    progress = {}; bestScore = null;
+    store.set("progress", {}); store.set("best", null);
+    go("home");
+  }
+}
+
+/* ============ helpers ============ */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const view = () => document.getElementById("view");
+const sameSet = (a,b) => a.length===b.length && a.every(x=>b.includes(x));
+
+/* ============ router ============ */
+let state = {screen:"home"};
+function go(screen, arg){
+  if(state.timerId){ clearInterval(state.timerId); }
+  state = {screen};
+  if(screen==="home") renderHome();
+  if(screen==="theoryList") renderTheoryList();
+  if(screen==="theory") renderTheory(arg);
+  render_lang_static();
+  window.scrollTo(0,0);
+}
+function toggleLang(){
+  LANG = LANG==="en" ? "fr" : "en";
+  localStorage.setItem("sc300_lang", LANG);
+  render_lang_static();
+  rerender();
+}
+function render_lang_static(){
+  document.getElementById("langBtn").textContent = LANG==="en" ? "🌐 FR" : "🌐 EN";
+  document.getElementById("subT").textContent = t("sub");
+  document.getElementById("navTheory").textContent = t("theory");
+  document.getElementById("navExam").textContent = t("exam");
+  document.getElementById("navReset").textContent = t("reset");
+}
+function rerender(){
+  const s = state.screen;
+  if(s==="home") renderHome();
+  else if(s==="theoryList") renderTheoryList();
+  else if(s==="theory") renderTheory(state.theoryDomain);
+  else if(s==="quiz") renderQuestion();
+  else if(s==="examIntro") renderExamIntro();
+  else if(s==="exam") renderQuestion();
+  else if(s==="results") renderResults();
+  else if(s==="reviewExam") renderExamReview();
+}
+
+/* ============ HOME ============ */
+function renderHome(){
+  state.screen = "home";
+  let html = `<div class="section-title">${t("home_title")}</div><div class="grid cols2">`;
+  for(const d of DOMAINS){
+    const qs = bank(d.id);
+    const seen = qs.filter(q=>progress[q.id]?.seen).length;
+    const okPct = qs.length ? Math.round(100 * qs.filter(q=>progress[q.id]?.lastCorrect).length / qs.length) : 0;
+    html += `
+    <div class="card domain-card" onclick="startStudy(${d.id})">
+      <span class="pct">${d.weight}</span>
+      <h3>${d.id}. ${esc(L(d.name))}</h3>
+      <div class="meta">${esc(L(d.topics))}</div>
+      <div class="progressbar"><div style="width:${okPct}%"></div></div>
+      <div class="meta">${qs.length} ${t("questions")} · ${seen} ${t("answered")} · ${okPct}% ${t("correctW")}</div>
+    </div>`;
+  }
+  html += `</div>
+  <div class="grid cols2 mt">
+    <div class="card domain-card" onclick="startStudy(0)">
+      <h3>🔀 ${t("all_title")}</h3>
+      <div class="meta">${allQuestions().length} ${t("questions")} — ${t("shuffle")}</div>
+    </div>
+    <div class="card domain-card" onclick="startReview()">
+      <h3>🎯 ${t("review_title")}</h3>
+      <div class="meta">${allQuestions().filter(q=>progress[q.id] && progress[q.id].lastCorrect===false).length} ${t("mistakes")}</div>
+    </div>
+  </div>
+  <div class="card mt center">
+    <div class="meta">${t("best")}</div>
+    <div style="font-size:30px;font-weight:800;" class="${bestScore>=700?'':''}">${bestScore!==null? bestScore+" / 1000" : t("none")}</div>
+  </div>`;
+  view().innerHTML = html;
+}
+
+/* ============ STUDY ============ */
+function startStudy(domainId){
+  const qs = domainId===0 ? shuffle(allQuestions()) : shuffle(bank(domainId));
+  if(!qs.length){ alert(t("no_q")); return; }
+  state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
+  renderQuestion();
+}
+function startReview(){
+  const qs = shuffle(allQuestions().filter(q=>progress[q.id] && progress[q.id].lastCorrect===false));
+  if(!qs.length){ alert(t("review_none")); return; }
+  state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
+  renderQuestion();
+}
+
+/* ============ EXAM ============ */
+function startExam(){ state = {screen:"examIntro"}; renderExamIntro(); }
+function renderExamIntro(){
+  view().innerHTML = `
+  <span class="backlink" onclick="go('home')">${t("back_home")}</span>
+  <div class="card center">
+    <h2 style="margin-bottom:10px;">⏱ ${t("exam_intro_t")}</h2>
+    <p style="color:var(--muted); max-width:560px; margin:0 auto 20px;">${t("exam_intro")}</p>
+    <button class="btn primary" onclick="beginExam()">${t("start")}</button>
+  </div>`;
+}
+function beginExam(){
+  let queue = [];
+  for(const d of DOMAINS){
+    queue = queue.concat(shuffle(bank(d.id)).slice(0, d.examCount));
+  }
+  queue = shuffle(queue);
+  if(!queue.length){ alert(t("no_q")); return; }
+  state = {screen:"exam", mode:"exam", queue, idx:0, answers:queue.map(()=>[]), selected:[], locked:false, endsAt:Date.now()+100*60*1000};
+  state.timerId = setInterval(tickTimer, 1000);
+  renderQuestion();
+}
+function tickTimer(){
+  const el = document.getElementById("timer");
+  const ms = state.endsAt - Date.now();
+  if(ms <= 0){ clearInterval(state.timerId); alert(t("time_up")); finishExam(); return; }
+  if(el){
+    const s = Math.floor(ms/1000);
+    el.textContent = String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+    el.classList.toggle("low", s < 600);
+  }
+}
+function finishExam(){
+  clearInterval(state.timerId);
+  const qs = state.queue;
+  let ok = 0;
+  const perDomain = {1:{ok:0,n:0},2:{ok:0,n:0},3:{ok:0,n:0},4:{ok:0,n:0}};
+  const results = qs.map((q,i)=>{
+    const sel = state.answers[i] || [];
+    const good = sameSet(sel, q.correct);
+    if(good) ok++;
+    perDomain[q.domain].n++; if(good) perDomain[q.domain].ok++;
+    recordAnswer(q.id, good);
+    return {q, sel, good};
+  });
+  const score = Math.round(1000 * ok / qs.length);
+  if(bestScore===null || score > bestScore){ bestScore = score; store.set("best", score); }
+  state = {screen:"results", results, score, ok, n:qs.length, perDomain};
+  renderResults();
+}
+function renderResults(){
+  const s = state;
+  const pass = s.score >= 700;
+  const skip = s.results.filter(r=>!r.sel.length).length;
+  let dom = "";
+  for(const d of DOMAINS){
+    const pd = s.perDomain[d.id];
+    const pct = pd.n ? Math.round(100*pd.ok/pd.n) : 0;
+    dom += `<div style="margin-bottom:10px;"><div style="font-size:13.5px;">${d.id}. ${esc(L(d.name))} — ${pd.ok}/${pd.n}</div>
+      <div class="progressbar"><div style="width:${pct}%"></div></div></div>`;
+  }
+  view().innerHTML = `
+  <div class="card">
+    <div class="score-big ${pass?'pass':'fail'}">${s.score} / 1000</div>
+    <div class="score-sub">${pass?t("result_pass"):t("result_fail")} — ${t("your_score")}</div>
+    <div class="statrow">
+      <div class="stat"><div class="v" style="color:var(--good)">${s.ok}</div><div class="l">${t("stats_ok")}</div></div>
+      <div class="stat"><div class="v" style="color:var(--bad)">${s.n-s.ok-skip}</div><div class="l">${t("stats_ko")}</div></div>
+      <div class="stat"><div class="v" style="color:var(--warn)">${skip}</div><div class="l">${t("stats_skip")}</div></div>
+    </div>
+    <div class="section-title">${t("by_domain")}</div>
+    ${dom}
+    <div class="flexwrap mt">
+      <button class="btn primary" onclick="renderExamReview()">${t("review_exam")}</button>
+      <button class="btn" onclick="go('home')">${t("back_home")}</button>
+    </div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+function renderExamReview(){
+  state.screen = "reviewExam";
+  let html = `<span class="backlink" onclick="renderResults()">← ${t("finish")}</span>`;
+  state.results.forEach((r,i)=>{
+    html += `<div class="card">
+      <span class="pill">${t("q")} ${i+1}</span><span class="pill topic">${esc(r.q.topic)}</span>
+      <span class="pill" style="color:${r.good?'var(--good)':'var(--bad)'}">${r.good?t("correct"):t("incorrect")}</span>
+      <div class="qtext">${esc(L(r.q.q))}</div>
+      ${r.q.options.map((o,j)=>{
+        const isC = r.q.correct.includes(j), isSel = r.sel.includes(j);
+        return `<div class="opt locked ${isC?'correct':(isSel?'wrong':'')}">
+          <div class="letter">${"ABCDEF"[j]}</div><div>${esc(L(o))}${isSel?` <em style="color:var(--muted)">← ${t("your_answer")}</em>`:""}</div></div>`;
+      }).join("")}
+      ${!r.sel.length?`<div class="meta">${t("skipped")}</div>`:""}
+      <div class="explain">${esc(L(r.q.explanation))}</div>
+    </div>`;
+  });
+  view().innerHTML = html;
+  window.scrollTo(0,0);
+}
+
+/* ============ QUESTION RENDER (study + exam) ============ */
+function renderQuestion(){
+  const q = state.queue[state.idx];
+  const isExam = state.mode === "exam";
+  if(isExam) state.selected = state.answers[state.idx].slice();
+  const multi = q.correct.length > 1;
+  const dName = DOMAINS.find(d=>d.id===q.domain);
+
+  let opts = "";
+  q.options.forEach((o,j)=>{
+    let cls = "opt";
+    if(state.locked){
+      cls += " locked";
+      if(q.correct.includes(j)) cls += " correct";
+      else if(state.selected.includes(j)) cls += " wrong";
+    } else if(state.selected.includes(j)) cls += " selected";
+    opts += `<div class="${cls}" onclick="pick(${j})"><div class="letter">${"ABCDEF"[j]}</div><div>${esc(L(o))}</div></div>`;
+  });
+
+  let explain = "";
+  if(state.locked){
+    const good = sameSet(state.selected, q.correct);
+    explain = `<div class="explain">
+      <div class="verdict ${good?'ok':'ko'}">${good?t("correct"):t("incorrect")} &nbsp;·&nbsp; ${t("correct_is")} ${q.correct.map(i=>"ABCDEF"[i]).join(", ")}</div>${esc(L(q.explanation))}</div>`;
+  }
+
+  const last = state.idx === state.queue.length - 1;
+  let navBtns = "";
+  if(isExam){
+    navBtns = `
+      <button class="btn" onclick="moveQ(-1)" ${state.idx===0?"disabled":""}>${t("prev")}</button>
+      ${last
+        ? `<button class="btn primary" onclick="finishExam()">${t("finish")}</button>`
+        : `<button class="btn primary" onclick="moveQ(1)">${t("next")}</button>`}`;
+  } else {
+    navBtns = state.locked
+      ? `<button class="btn primary" onclick="nextStudy()">${last?t("finish"):t("next")}</button>`
+      : `<button class="btn primary" onclick="checkAnswer()" ${state.selected.length?"":"disabled"}>${t("submit")}</button>`;
+  }
+
+  view().innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <span class="backlink" onclick="go('home')" style="margin:0;">${t("quit")}</span>
+    ${isExam?`<span class="timer" id="timer">--:--</span>`:""}
+  </div>
+  <div class="card">
+    <span class="pill">${t("domain")} ${q.domain} — ${esc(L(dName.name))}</span><span class="pill topic">${esc(q.topic)}</span>
+    <div class="qtext">${esc(L(q.q))}${multi?`\n<span style="color:var(--warn);font-size:13px;font-weight:400;">${t("multi_hint")}</span>`:""}</div>
+    ${opts}
+    ${explain}
+    <div class="quiznav">
+      <span class="qcounter">${t("q")} ${state.idx+1} ${t("of")} ${state.queue.length}</span>
+      <div class="flexwrap">${navBtns}</div>
+    </div>
+  </div>`;
+  if(isExam) tickTimer();
+}
+function pick(j){
+  if(state.locked) return;
+  const q = state.queue[state.idx];
+  const multi = q.correct.length > 1;
+  if(multi){
+    state.selected = state.selected.includes(j) ? state.selected.filter(x=>x!==j) : state.selected.concat(j);
+  } else {
+    state.selected = [j];
+  }
+  if(state.mode==="exam") state.answers[state.idx] = state.selected.slice();
+  renderQuestion();
+}
+function checkAnswer(){
+  const q = state.queue[state.idx];
+  state.locked = true;
+  recordAnswer(q.id, sameSet(state.selected, q.correct));
+  renderQuestion();
+}
+function nextStudy(){
+  if(state.idx >= state.queue.length - 1){ go("home"); return; }
+  state.idx++; state.selected = []; state.locked = false;
+  renderQuestion();
+  window.scrollTo(0,0);
+}
+function moveQ(dir){
+  state.idx = Math.max(0, Math.min(state.queue.length-1, state.idx+dir));
+  state.selected = state.answers[state.idx].slice();
+  renderQuestion();
+  window.scrollTo(0,0);
+}
+
+/* ============ THEORY ============ */
+function renderTheoryList(){
+  state.screen = "theoryList";
+  let html = `<span class="backlink" onclick="go('home')">${t("back_home")}</span>
+  <div class="section-title">${t("theory_pick")}</div><div class="grid cols2">`;
+  for(const d of DOMAINS){
+    html += `<div class="card domain-card" onclick="go('theory',${d.id})">
+      <span class="pct">${d.weight}</span>
+      <h3>${d.id}. ${esc(L(d.name))}</h3>
+      <div class="meta">${esc(L(d.topics))}</div>
+      <button class="btn small mt">${t("read")}</button>
+    </div>`;
+  }
+  view().innerHTML = html + "</div>";
+}
+function renderTheory(domainId){
+  state.screen = "theory"; state.theoryDomain = domainId;
+  const th = (window.SC300_THEORY||[]).find(x=>x.domain===domainId);
+  const d = DOMAINS.find(x=>x.id===domainId);
+  if(!th){ view().innerHTML = `<span class="backlink" onclick="go('theoryList')">←</span><div class="card">${t("no_q")}</div>`; return; }
+  let html = `<span class="backlink" onclick="go('theoryList')">← ${t("theory")}</span>
+  <div class="card theory">
+    <h2>${d.id}. ${esc(L(d.name))}</h2>
+    <div class="meta">${d.weight} ${t("weight")}</div>
+    ${th.sections.map(s=>`<h3>${esc(L(s.title))}</h3>${L(s.html)}`).join("")}
+  </div>
+  <div class="center"><button class="btn primary" onclick="startStudy(${d.id})">${t("study")} →</button></div>`;
+  view().innerHTML = html;
+}
+
+/* ============ init ============ */
+render_lang_static();
+renderHome();
+</script>
+</body>
+</html>
