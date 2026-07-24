@@ -355,6 +355,23 @@ function toast(html){
   document.body.appendChild(d);
   setTimeout(()=>d.remove(), 4000);
 }
+let audioCtx = null;
+function playCorrect(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    // two quick ascending notes (A5 then E6) = satisfying "ding!"
+    [[880, 0], [1318.5, 0.09]].forEach(([freq, off]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, now + off);
+      g.gain.exponentialRampToValueAtTime(0.22, now + off + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + off + 0.35);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(now + off); o.stop(now + off + 0.4);
+    });
+  }catch(e){ /* audio not available — stay silent */ }
+}
 function confetti(n = 90){
   const colors = ["#4f8ff7","#7c5cff","#2ecc80","#f7b955","#ff5c6c"];
   for(let i=0; i<n; i++){
@@ -800,6 +817,7 @@ function checkAnswer(){
   recordAnswer(q.id, ok);
   touchStreak();
   if(ok){
+    playCorrect();
     state.combo = (state.combo||0) + 1;
     state.sessionOk = (state.sessionOk||0) + 1;
     addXP(10 + (state.endsAt ? 5 : 0));
@@ -828,7 +846,7 @@ function finishStudy(){
   }
   state = {screen:"studyResults", queue:state.queue, ok, n, mins:state.sessionMins || 0};
   renderStudyResults();
-  if(perfect) confetti();
+  confetti(perfect ? 130 : 50);
 }
 function renderStudyResults(){
   const pct = state.n ? Math.round(100 * state.ok / state.n) : 0;
