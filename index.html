@@ -105,6 +105,21 @@
   .chip:hover{border-color:var(--accent);}
   .chip.on{border-color:var(--accent); background:rgba(79,143,247,.14); color:var(--text); font-weight:600;}
 
+  /* Gamification */
+  .cf{position:fixed; top:-14px; width:9px; height:14px; z-index:998; border-radius:2px; pointer-events:none; animation:cfFall linear forwards;}
+  @keyframes cfFall{ to{ transform:translateY(112vh) rotate(720deg); } }
+  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:997; background:var(--surface); border:1px solid var(--accent); border-radius:12px; padding:12px 20px; font-size:14.5px; box-shadow:0 8px 30px rgba(0,0,0,.5); animation:toastIn .3s; max-width:90vw; text-align:center;}
+  @keyframes toastIn{ from{opacity:0; transform:translateX(-50%) translateY(16px);} }
+  .status-card .bignum{font-size:40px; font-weight:800;}
+  .gstat{flex:1; min-width:110px; background:var(--surface2); border-radius:12px; padding:12px; text-align:center;}
+  .gstat .v{font-size:19px; font-weight:800;}
+  .gstat .l{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .badge-item{display:flex; gap:12px; align-items:center; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+  .badge-item.locked{opacity:.35; filter:grayscale(1);}
+  .badge-item .bicon{font-size:26px;}
+  .badge-item .bname{font-weight:700; font-size:14.5px;}
+  .badge-item .bdesc{font-size:12.5px; color:var(--muted);}
+
   /* Lock screen */
   #lock{position:fixed; inset:0; z-index:999; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:20px;}
   #lock .card{max-width:360px; width:100%; text-align:center;}
@@ -192,6 +207,12 @@ const UI = {
     custom_title:"Custom quiz", custom_pick:"Which domains?", custom_n:"How many questions?",
     all_of_them:"All", available:"available", start_quiz:"Start quiz", first_time:"first time",
     custom_timer:"Timer? (whole session)", no_timer:"None", min:"min", per_q:"1 min / question",
+    focus_weak:"🧠 Focus my weak questions", status_title:"Exam readiness",
+    r_low:"Keep going — do quizzes and read the theory.", r_mid:"Good progress — target your weak questions.",
+    r_high:"Almost ready — chain mock exams to confirm.", r_ready:"You're ready! Book the exam 🎉",
+    hint_theory:"📖 Theory left to read:", hint_unseen:"never-seen questions", hint_exam:"⏱ Take a mock exam to refine this score",
+    level:"Level", day_streak:"day streak", best_combo:"best combo", badges:"Badges", xp:"XP",
+    badges_title:"Your badges", unlocked:"unlocked",
   },
   fr:{ sub:"Identity and Access Administrator", theory:"📖 Théorie", exam:"⏱ Examen blanc", reset:"↺ Réinitialiser",
     home_title:"Choisis un domaine à étudier", study:"Mode étude", answered:"répondues", correctW:"correctes",
@@ -212,6 +233,12 @@ const UI = {
     custom_title:"Quiz personnalisé", custom_pick:"Quels domaines ?", custom_n:"Combien de questions ?",
     all_of_them:"Toutes", available:"disponibles", start_quiz:"Lancer le quiz", first_time:"première fois",
     custom_timer:"Chrono ? (toute la session)", no_timer:"Sans", min:"min", per_q:"1 min / question",
+    focus_weak:"🧠 Cibler mes questions faibles", status_title:"Préparation à l'examen",
+    r_low:"Continue — fais des quiz et lis la théorie.", r_mid:"Bon progrès — cible tes questions faibles.",
+    r_high:"Presque prêt — enchaîne les examens blancs pour confirmer.", r_ready:"Tu es prêt ! Réserve l'examen 🎉",
+    hint_theory:"📖 Théorie à lire :", hint_unseen:"questions jamais vues", hint_exam:"⏱ Fais un examen blanc pour affiner ce score",
+    level:"Niveau", day_streak:"jours d'affilée", best_combo:"meilleur combo", badges:"Badges", xp:"XP",
+    badges_title:"Tes badges", unlocked:"débloqués",
   }
 };
 const t = k => UI[LANG][k] || k;
@@ -253,7 +280,91 @@ function resetProgress(){
   if(confirm(t("confirm_reset"))){
     progress = {}; bestScore = null;
     store.set("progress", {}); store.set("best", null);
+    game = {xp:0, streakLast:null, streakDays:0, bestCombo:0, badges:[], theoryRead:[], perfectSessions:0};
+    saveGame();
     go("home");
+  }
+}
+
+/* ============ GAMIFICATION ============ */
+let game = store.get("game", {xp:0, streakLast:null, streakDays:0, bestCombo:0, badges:[], theoryRead:[], perfectSessions:0});
+function saveGame(){ store.set("game", game); }
+const todayStr = () => new Date().toISOString().slice(0,10);
+function touchStreak(){
+  const today = todayStr();
+  if(game.streakLast === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  game.streakDays = (game.streakLast === yesterday) ? game.streakDays + 1 : 1;
+  game.streakLast = today;
+  saveGame();
+}
+function addXP(n){ game.xp += n; saveGame(); }
+function curStreak(){
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  return (game.streakLast === todayStr() || game.streakLast === yesterday) ? (game.streakDays||0) : 0;
+}
+const LEVELS = [
+  {xp:0,    name:"Identity Rookie"},
+  {xp:250,  name:"Identity Apprentice"},
+  {xp:750,  name:"Access Admin"},
+  {xp:1500, name:"CA Specialist"},
+  {xp:3000, name:"Governance Pro"},
+  {xp:5000, name:"Entra Master"},
+];
+function levelInfo(){
+  let i = 0;
+  while(i + 1 < LEVELS.length && game.xp >= LEVELS[i+1].xp) i++;
+  const cur = LEVELS[i], next = LEVELS[i+1];
+  return {num:i+1, name:cur.name, pct: next ? Math.round(100*(game.xp-cur.xp)/(next.xp-cur.xp)) : 100, next};
+}
+function totalAttempts(){ return Object.values(progress).reduce((a,p)=>a+p.seen, 0); }
+function domainMastered(){
+  return DOMAINS.some(d => {
+    const qs = bank(d.id);
+    return qs.length && qs.every(q=>progress[q.id]?.seen) &&
+      qs.filter(q=>progress[q.id]?.lastCorrect).length / qs.length >= 0.8;
+  });
+}
+const BADGES = [
+  {id:"first",   icon:"🎬", name:{en:"First step",        fr:"Premier pas"},        desc:{en:"Answer your first question",       fr:"Réponds à ta première question"},        test:()=>totalAttempts()>=1},
+  {id:"q50",     icon:"💪", name:{en:"Warming up",        fr:"Échauffement"},       desc:{en:"50 answers total",                 fr:"50 réponses au total"},                  test:()=>totalAttempts()>=50},
+  {id:"q200",    icon:"🏋️", name:{en:"Grinder",           fr:"Machine"},            desc:{en:"200 answers total",                fr:"200 réponses au total"},                 test:()=>totalAttempts()>=200},
+  {id:"combo5",  icon:"⚡", name:{en:"Combo x5",          fr:"Combo x5"},           desc:{en:"5 correct in a row",               fr:"5 bonnes réponses d'affilée"},           test:()=>game.bestCombo>=5},
+  {id:"combo10", icon:"🔥", name:{en:"On fire",           fr:"En feu"},             desc:{en:"10 correct in a row",              fr:"10 bonnes réponses d'affilée"},          test:()=>game.bestCombo>=10},
+  {id:"streak3", icon:"📅", name:{en:"Regular",           fr:"Assidu"},             desc:{en:"3-day study streak",               fr:"3 jours d'étude d'affilée"},             test:()=>game.streakDays>=3},
+  {id:"streak7", icon:"🗓️", name:{en:"Committed",         fr:"Déterminé"},          desc:{en:"7-day study streak",               fr:"7 jours d'étude d'affilée"},             test:()=>game.streakDays>=7},
+  {id:"perfect", icon:"✨", name:{en:"Perfect session",   fr:"Session parfaite"},   desc:{en:"100% on a 5+ question session",    fr:"100% sur une session de 5+ questions"},  test:()=>(game.perfectSessions||0)>=1},
+  {id:"exam700", icon:"🏆", name:{en:"Exam ready",        fr:"Prêt pour l'examen"}, desc:{en:"Score 700+ on a mock exam",        fr:"700+ à un examen blanc"},                test:()=>bestScore>=700},
+  {id:"theory4", icon:"📖", name:{en:"Scholar",           fr:"Érudit"},             desc:{en:"Read all 4 theory domains",        fr:"Lire la théorie des 4 domaines"},        test:()=>(game.theoryRead||[]).length>=4},
+  {id:"master",  icon:"👑", name:{en:"Domain master",     fr:"Maître de domaine"},  desc:{en:"80%+ on every question of a domain", fr:"80%+ sur toutes les questions d'un domaine"}, test:()=>domainMastered()},
+];
+function checkBadges(){
+  const newly = BADGES.filter(b => !game.badges.includes(b.id) && b.test());
+  if(newly.length){
+    newly.forEach(b => game.badges.push(b.id));
+    saveGame();
+    toast(newly.map(b => `${b.icon} ${esc(L(b.name))}`).join(" · "));
+    confetti(30);
+  }
+}
+function toast(html){
+  document.getElementById("toast")?.remove();
+  const d = document.createElement("div");
+  d.id = "toast"; d.innerHTML = "🏅 " + html;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 4000);
+}
+function confetti(n = 90){
+  const colors = ["#4f8ff7","#7c5cff","#2ecc80","#f7b955","#ff5c6c"];
+  for(let i=0; i<n; i++){
+    const d = document.createElement("div");
+    d.className = "cf";
+    d.style.left = Math.random()*100 + "vw";
+    d.style.background = colors[i % colors.length];
+    d.style.animationDelay = (Math.random()*0.8) + "s";
+    d.style.animationDuration = (2 + Math.random()*2) + "s";
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 5000);
   }
 }
 
@@ -272,6 +383,7 @@ function go(screen, arg){
   if(screen==="theoryList") renderTheoryList();
   if(screen==="theory") renderTheory(arg);
   if(screen==="custom") renderCustom();
+  if(screen==="badges") renderBadges();
   render_lang_static();
   window.scrollTo(0,0);
 }
@@ -294,6 +406,7 @@ function rerender(){
   else if(s==="theoryList") renderTheoryList();
   else if(s==="theory") renderTheory(state.theoryDomain);
   else if(s==="custom") renderCustom();
+  else if(s==="badges") renderBadges();
   else if(s==="quiz") renderQuestion();
   else if(s==="examIntro") renderExamIntro();
   else if(s==="exam") renderQuestion();
@@ -302,9 +415,53 @@ function rerender(){
 }
 
 /* ============ HOME ============ */
+function readiness(){
+  const all = allQuestions();
+  const seen = all.filter(q=>progress[q.id]?.seen).length;
+  const mastered = all.filter(q=>progress[q.id]?.lastCorrect).length;
+  const coverage = all.length ? seen/all.length : 0;
+  const mastery = all.length ? mastered/all.length : 0;
+  const examPart = bestScore !== null ? Math.min(bestScore/700, 1) : 0;
+  const theoryPart = (game.theoryRead||[]).length / 4;
+  const pct = Math.round(100 * (0.35*mastery + 0.2*coverage + 0.35*examPart + 0.1*theoryPart));
+  return {pct, coverage, mastery, examPart, theoryPart, unseen: all.length - seen};
+}
 function renderHome(){
   state.screen = "home";
-  let html = `<div class="section-title">${t("home_title")}</div><div class="grid cols2">`;
+  const r = readiness();
+  const lv = levelInfo();
+  let msg, color;
+  if(r.pct >= 85 && bestScore >= 700){ msg = t("r_ready"); color = "var(--good)"; }
+  else if(r.pct >= 70){ msg = t("r_high"); color = "var(--good)"; }
+  else if(r.pct >= 40){ msg = t("r_mid"); color = "var(--warn)"; }
+  else { msg = t("r_low"); color = "var(--warn)"; }
+  const hints = [];
+  const theoryLeft = DOMAINS.filter(d => !(game.theoryRead||[]).includes(d.id)).map(d=>"D"+d.id);
+  if(theoryLeft.length) hints.push(`${t("hint_theory")} ${theoryLeft.join(", ")}`);
+  if(r.unseen > 0) hints.push(`👀 ${r.unseen} ${t("hint_unseen")}`);
+  if(bestScore === null) hints.push(t("hint_exam"));
+
+  let html = `
+  <div class="card status-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>
+        <div class="meta">🎯 ${t("status_title")}</div>
+        <div class="bignum" style="color:${color}">${r.pct}%</div>
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <div style="font-size:14px; font-weight:600; margin-bottom:6px;">${msg}</div>
+        <div class="progressbar"><div style="width:${r.pct}%"></div></div>
+        ${hints.length ? `<div class="meta" style="margin-top:8px;">${hints.join("<br>")}</div>` : ""}
+      </div>
+    </div>
+    <div class="statrow" style="margin-top:16px; margin-bottom:0;">
+      <div class="gstat"><div class="v">🔥 ${curStreak()}</div><div class="l">${t("day_streak")}</div></div>
+      <div class="gstat"><div class="v">⭐ ${game.xp}</div><div class="l">${t("xp")} · ${t("level")} ${lv.num} — ${lv.name}</div></div>
+      <div class="gstat"><div class="v">⚡ ${game.bestCombo||0}</div><div class="l">${t("best_combo")}</div></div>
+      <div class="gstat" style="cursor:pointer;" onclick="go('badges')"><div class="v">🏅 ${game.badges.length}/${BADGES.length}</div><div class="l">${t("badges")}</div></div>
+    </div>
+  </div>
+  <div class="section-title">${t("home_title")}</div><div class="grid cols2">`;
   for(const d of DOMAINS){
     const qs = bank(d.id);
     const seen = qs.filter(q=>progress[q.id]?.seen).length;
@@ -363,6 +520,7 @@ function renderCustom(){
   const countChips = counts.map(n =>
     `<span class="chip ${customCfg.count===n?'on':''}" onclick="setCount(${n})">${n}</span>`
   ).join("") + `<span class="chip ${customCfg.count==='all'?'on':''}" onclick="setCount('all')">${t("all_of_them")}</span>`;
+  const focusChip = `<span class="chip ${customCfg.focus?'on':''}" onclick="toggleFocus()">${t("focus_weak")}</span>`;
   const timerChips = `<span class="chip ${customCfg.timer===0?'on':''}" onclick="setTimerMin(0)">${t("no_timer")}</span>` +
     `<span class="chip ${customCfg.timer==='auto'?'on':''}" onclick="setTimerMin('auto')">⏱ ${t("per_q")}</span>` +
     [5,10,15,30].map(m =>
@@ -379,6 +537,7 @@ function renderCustom(){
     <div class="flexwrap">${countChips}</div>
     <div class="section-title">⏱ ${t("custom_timer")}</div>
     <div class="flexwrap">${timerChips}</div>
+    <div class="mt">${focusChip}</div>
     <div class="meta mt">${avail} ${t("questions")} ${t("available")}</div>
     <div class="mt">
       <button class="btn primary" onclick="startCustom()" ${customCfg.doms.length?"":"disabled"}>${t("start_quiz")} →</button>
@@ -400,9 +559,25 @@ function setTimerMin(m){
   store.set("customCfg", customCfg);
   renderCustom();
 }
+function toggleFocus(){
+  customCfg.focus = !customCfg.focus;
+  store.set("customCfg", customCfg);
+  renderCustom();
+}
 function startCustom(){
-  let qs = shuffle(customCfg.doms.flatMap(bank));
-  if(!qs.length){ alert(t("no_q")); return; }
+  let qs;
+  const pool = customCfg.doms.flatMap(bank);
+  if(!pool.length){ alert(t("no_q")); return; }
+  if(customCfg.focus){
+    // weight questions by failure rate: failed > unseen > mastered, with some randomness
+    qs = pool.map(q => {
+      const st = progress[q.id];
+      const fail = (st && st.seen) ? (st.seen - st.ok) / st.seen : 0.6;
+      return {q, w: fail + Math.random()*0.4};
+    }).sort((a,b) => b.w - a.w).map(x => x.q);
+  } else {
+    qs = shuffle(pool);
+  }
   if(customCfg.count !== "all") qs = qs.slice(0, customCfg.count);
   state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
   const minutes = customCfg.timer === "auto" ? qs.length : customCfg.timer;
@@ -412,6 +587,22 @@ function startCustom(){
   }
   renderQuestion();
   window.scrollTo(0,0);
+}
+
+/* ============ BADGES SCREEN ============ */
+function renderBadges(){
+  state.screen = "badges";
+  view().innerHTML = `
+  <span class="backlink" onclick="go('home')">${t("back_home")}</span>
+  <div class="card">
+    <h2 style="font-size:20px; margin-bottom:4px;">🏅 ${t("badges_title")}</h2>
+    <div class="meta" style="margin-bottom:16px;">${game.badges.length}/${BADGES.length} ${t("unlocked")}</div>
+    ${BADGES.map(b => `
+    <div class="badge-item ${game.badges.includes(b.id)?'':'locked'}">
+      <div class="bicon">${b.icon}</div>
+      <div><div class="bname">${esc(L(b.name))}</div><div class="bdesc">${esc(L(b.desc))}</div></div>
+    </div>`).join("")}
+  </div>`;
 }
 
 /* ============ EXAM ============ */
@@ -466,8 +657,12 @@ function finishExam(){
   });
   const score = Math.round(1000 * ok / qs.length);
   if(bestScore===null || score > bestScore){ bestScore = score; store.set("best", score); }
+  touchStreak();
+  addXP(ok * 10 + (score >= 700 ? 100 : 0));
   state = {screen:"results", results, score, ok, n:qs.length, perDomain};
   renderResults();
+  if(score >= 700) confetti();
+  checkBadges();
 }
 function renderResults(){
   const s = state;
@@ -564,6 +759,7 @@ function renderQuestion(){
     (st && st.seen
       ? `<span class="pill">📊 <span style="color:var(--good)">✔ ${st.ok}</span> · <span style="color:var(--bad)">✘ ${st.seen - st.ok}</span></span>`
       : `<span class="pill">📊 ${t("first_time")}</span>`);
+  const comboPill = (!isExam && (state.combo||0) >= 2) ? `<span class="pill" style="color:var(--warn)">🔥 x${state.combo}</span>` : "";
 
   view().innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -571,7 +767,7 @@ function renderQuestion(){
     ${state.endsAt?`<span class="timer" id="timer">--:--</span>`:""}
   </div>
   <div class="card">
-    <span class="pill">${t("domain")} ${q.domain} — ${esc(L(dName.name))}</span><span class="pill topic">${esc(q.topic)}</span>${statsPill}
+    <span class="pill">${t("domain")} ${q.domain} — ${esc(L(dName.name))}</span><span class="pill topic">${esc(q.topic)}</span>${statsPill}${comboPill}
     <div class="qtext">${esc(L(q.q))}${multi?`\n<span style="color:var(--warn);font-size:13px;font-weight:400;">${t("multi_hint")}</span>`:""}</div>
     ${opts}
     ${explain}
@@ -597,11 +793,31 @@ function pick(j){
 function checkAnswer(){
   const q = state.queue[state.idx];
   state.locked = true;
-  recordAnswer(q.id, sameSet(state.selected, q.correct));
+  const ok = sameSet(state.selected, q.correct);
+  recordAnswer(q.id, ok);
+  touchStreak();
+  if(ok){
+    state.combo = (state.combo||0) + 1;
+    state.sessionOk = (state.sessionOk||0) + 1;
+    addXP(10 + (state.endsAt ? 5 : 0));
+    if(state.combo > game.bestCombo){ game.bestCombo = state.combo; saveGame(); }
+  } else {
+    state.combo = 0;
+    addXP(2);
+  }
+  checkBadges();
   renderQuestion();
 }
 function nextStudy(){
-  if(state.idx >= state.queue.length - 1){ go("home"); return; }
+  if(state.idx >= state.queue.length - 1){
+    if((state.sessionOk||0) === state.queue.length && state.queue.length >= 5){
+      game.perfectSessions = (game.perfectSessions||0) + 1;
+      saveGame();
+      confetti();
+      checkBadges();
+    }
+    go("home"); return;
+  }
   state.idx++; state.selected = []; state.locked = false;
   renderQuestion();
   window.scrollTo(0,0);
@@ -633,6 +849,11 @@ function renderTheory(domainId){
   const th = (window.SC300_THEORY||[]).find(x=>x.domain===domainId);
   const d = DOMAINS.find(x=>x.id===domainId);
   if(!th){ view().innerHTML = `<span class="backlink" onclick="go('theoryList')">←</span><div class="card">${t("no_q")}</div>`; return; }
+  if(!(game.theoryRead||[]).includes(domainId)){
+    game.theoryRead = (game.theoryRead||[]).concat(domainId);
+    saveGame();
+    checkBadges();
+  }
   let html = `<span class="backlink" onclick="go('theoryList')">← ${t("theory")}</span>
   <div class="card theory">
     <h2>${d.id}. ${esc(L(d.name))}</h2>
