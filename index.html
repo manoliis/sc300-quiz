@@ -344,7 +344,6 @@ function checkBadges(){
     newly.forEach(b => game.badges.push(b.id));
     saveGame();
     toast(newly.map(b => `${b.icon} ${esc(L(b.name))}`).join(" · "));
-    confetti(30);
   }
 }
 function toast(html){
