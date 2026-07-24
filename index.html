@@ -191,7 +191,7 @@ const UI = {
     custom_card:"Custom quiz", custom_meta:"Pick your domains and how many questions — random every time",
     custom_title:"Custom quiz", custom_pick:"Which domains?", custom_n:"How many questions?",
     all_of_them:"All", available:"available", start_quiz:"Start quiz", first_time:"first time",
-    custom_timer:"Timer? (whole session)", no_timer:"None", min:"min",
+    custom_timer:"Timer? (whole session)", no_timer:"None", min:"min", per_q:"1 min / question",
   },
   fr:{ sub:"Identity and Access Administrator", theory:"📖 Théorie", exam:"⏱ Examen blanc", reset:"↺ Réinitialiser",
     home_title:"Choisis un domaine à étudier", study:"Mode étude", answered:"répondues", correctW:"correctes",
@@ -211,7 +211,7 @@ const UI = {
     custom_card:"Quiz personnalisé", custom_meta:"Choisis tes domaines et le nombre de questions — aléatoire à chaque fois",
     custom_title:"Quiz personnalisé", custom_pick:"Quels domaines ?", custom_n:"Combien de questions ?",
     all_of_them:"Toutes", available:"disponibles", start_quiz:"Lancer le quiz", first_time:"première fois",
-    custom_timer:"Chrono ? (toute la session)", no_timer:"Sans", min:"min",
+    custom_timer:"Chrono ? (toute la session)", no_timer:"Sans", min:"min", per_q:"1 min / question",
   }
 };
 const t = k => UI[LANG][k] || k;
@@ -351,8 +351,8 @@ function startReview(){
 }
 
 /* ============ CUSTOM QUIZ ============ */
-let customCfg = store.get("customCfg", {doms:[1,2,3,4], count:10, timer:0});
-if(customCfg.timer === undefined) customCfg.timer = 0;
+let customCfg = store.get("customCfg", {doms:[1,2,3,4], count:10, timer:"auto"});
+if(customCfg.timer === undefined) customCfg.timer = "auto";
 function renderCustom(){
   state.screen = "custom";
   const avail = customCfg.doms.flatMap(bank).length;
@@ -364,6 +364,7 @@ function renderCustom(){
     `<span class="chip ${customCfg.count===n?'on':''}" onclick="setCount(${n})">${n}</span>`
   ).join("") + `<span class="chip ${customCfg.count==='all'?'on':''}" onclick="setCount('all')">${t("all_of_them")}</span>`;
   const timerChips = `<span class="chip ${customCfg.timer===0?'on':''}" onclick="setTimerMin(0)">${t("no_timer")}</span>` +
+    `<span class="chip ${customCfg.timer==='auto'?'on':''}" onclick="setTimerMin('auto')">⏱ ${t("per_q")}</span>` +
     [5,10,15,30].map(m =>
       `<span class="chip ${customCfg.timer===m?'on':''}" onclick="setTimerMin(${m})">${m} ${t("min")}</span>`
     ).join("");
@@ -404,8 +405,9 @@ function startCustom(){
   if(!qs.length){ alert(t("no_q")); return; }
   if(customCfg.count !== "all") qs = qs.slice(0, customCfg.count);
   state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
-  if(customCfg.timer > 0){
-    state.endsAt = Date.now() + customCfg.timer * 60 * 1000;
+  const minutes = customCfg.timer === "auto" ? qs.length : customCfg.timer;
+  if(minutes > 0){
+    state.endsAt = Date.now() + minutes * 60 * 1000;
     state.timerId = setInterval(tickTimer, 1000);
   }
   renderQuestion();
