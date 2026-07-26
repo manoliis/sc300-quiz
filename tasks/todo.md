@@ -28,7 +28,7 @@ App quiz HTML interactive + théorie complète pour préparer la certification S
 - [x] 8. Questions D3 — 20/100 (lot 1 fait)
 - [x] 9. Questions D4 — 20/100 (lot 1 fait)
 - [x] 10. Validation : syntaxe JS OK + structure des 100 questions OK (node --check + script de validation)
-- [ ] 11. Lots suivants de questions (objectif 400 total) — ajouter par lots de ~25/domaine sur demande
+- [x] 11. Lots suivants de questions — **objectif 400 atteint le 2026-07-26** (100 par domaine)
 
 ## Audit du 2026-07-26 — corrections & améliorations validées par Manolis
 - [x] 12. Bug : `renderResults()` ne remet pas `state.screen="results"` → écran figé sur la revue après changement de langue
@@ -48,5 +48,15 @@ sauvegarde+reprise d'examen, alerte questions blanches, état d'écran résultat
 seuil de confettis, revoir ses erreurs, mute, localStorage corrompu rejeté sans crash).
 Données : 200 questions, 0 doublon d'ID, 0 doublon de texte, bilingue complet, indices `correct` tous valides.
 
-## État : 200 questions validées (D1=55 D2=55 D3=45 D4=45), app fonctionnelle. Ouvrir index.html dans le navigateur.
-## Reste à faire : lots suivants vers l'objectif 400 (+50/domaine).
+## Lot final (2026-07-26) — 400 questions
+- [x] 21. +200 questions (D1 +45, D2 +45, D3 +55, D4 +55), sujets tous distincts des existants
+- [x] 22. Correction d'un biais majeur : la bonne réponse était en position A dans 98 % des questions.
+      Permutation des options des 365 questions concernées, avec remappage des lettres dans les
+      explications EN et FR et réordonnancement alphabétique des lignes. Répartition désormais
+      A=25% B=25% C=25% D=25%, vérifiée par 800 contrôles explication↔données (0 écart).
+- [x] 23. Suppression d'un doublon reformulé (d3-039 reprenait d3-011) → remplacé par « Single sign-out ».
+- [x] 24. Garde-fous ajoutés à `tests/validate-data.js` : échec si une position dépasse 40 %, et
+      vérification que chaque explication couvre toutes les options et marque les bonnes réponses.
+
+## État : 400 questions validées (100 par domaine), app fonctionnelle. Ouvrir index.html dans le navigateur.
+## Reste à faire : rien de bloquant. Étoffer la théorie D3/D4 (2 sections chacune, contre 4 pour D1) serait le prochain gain.
