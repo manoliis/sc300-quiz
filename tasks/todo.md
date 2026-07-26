@@ -30,4 +30,23 @@ App quiz HTML interactive + théorie complète pour préparer la certification S
 - [x] 10. Validation : syntaxe JS OK + structure des 100 questions OK (node --check + script de validation)
 - [ ] 11. Lots suivants de questions (objectif 400 total) — ajouter par lots de ~25/domaine sur demande
 
-## État : 100 questions validées, app fonctionnelle. Ouvrir index.html dans le navigateur.
+## Audit du 2026-07-26 — corrections & améliorations validées par Manolis
+- [x] 12. Bug : `renderResults()` ne remet pas `state.screen="results"` → écran figé sur la revue après changement de langue
+- [x] 13. Bug : streak calculé en UTC (`toISOString`) au lieu de la date locale → streak faussé après minuit
+- [x] 14. Bug : « ← Quitter » sans confirmation → perte d'un examen en cours par mégarde
+- [x] 15. Examen : navigateur de questions (grille cliquable) + marquage « à revoir » + alerte questions sans réponse avant validation
+- [x] 16. Examen : reprise après rechargement de page (sauvegarde localStorage `sc300_examSave`, chrono absolu, validation stricte des données relues)
+- [x] 17. Fin de quiz : bouton « revoir seulement mes erreurs de cette session »
+- [x] 18. Bouton muet 🔊/🔇 pour le son de bonne réponse (persisté, clé `sc300_muted`)
+- [x] 19. Confettis de fin de session d'étude uniquement à partir de 70 % (respecte la leçon du 24/07)
+- [x] 20. Nouveau lot : +25 questions par domaine (100 de plus → 200 au total), vérifiées vs Microsoft Learn
+
+## Vérification (2026-07-26)
+Harnais de test headless (stub DOM + localStorage, évalue le vrai `<script>` d'index.html) :
+`scratchpad/smoke.js` → **48 tests passés / 0 échec** (i18n complet, handlers onclick définis, streak local,
+sauvegarde+reprise d'examen, alerte questions blanches, état d'écran résultats/revue, confirmations de sortie,
+seuil de confettis, revoir ses erreurs, mute, localStorage corrompu rejeté sans crash).
+Données : 200 questions, 0 doublon d'ID, 0 doublon de texte, bilingue complet, indices `correct` tous valides.
+
+## État : 200 questions validées (D1=55 D2=55 D3=45 D4=45), app fonctionnelle. Ouvrir index.html dans le navigateur.
+## Reste à faire : lots suivants vers l'objectif 400 (+50/domaine).
