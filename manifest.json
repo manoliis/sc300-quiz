@@ -1,0 +1,21 @@
+{
+  "name": "SC-300 Prep — Microsoft Identity and Access Administrator",
+  "short_name": "SC300 Quiz",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#7c5cff",
+  "theme_color": "#7c5cff",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
