@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const ROOT = process.argv[2] || require("path").join(__dirname, "..");
 
+const esc2 = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let fails = 0, passes = 0;
 const ok = (cond, label) => { if(cond){ passes++; console.log("  PASS " + label); } else { fails++; console.log("  FAIL " + label); } };
 
@@ -39,6 +40,10 @@ for (const f of ["d1","d2","d3","d4"]) {
   new Function("window", src)(win);
 }
 new Function("window", fs.readFileSync(path.join(ROOT, "data", "theory.js"), "utf8"))(win);
+for (const f of ["d1","d2","d3","d4"]) {
+  const p = path.join(ROOT, "data", "help-" + f + ".js");
+  if (fs.existsSync(p)) new Function("window", fs.readFileSync(p, "utf8"))(win);
+}
 
 /* ---------- load the app script ---------- */
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
@@ -47,12 +52,14 @@ const appSrc = blocks[blocks.length - 1];
 
 win.localStorage = localStorage;
 win.scrollTo = () => {};
+let opened = [];
+win.open = (url, target, features) => { opened.push({url, target, features}); return null; };
 // count oscillators, not contexts: the app caches one AudioContext for the whole session
 win.AudioContext = function(){ return { currentTime:0, createOscillator:()=>{ soundCalls++; return {connect(){},start(){},stop(){},frequency:{}}; }, createGain:()=>({connect(){},gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}}}), destination:{} }; };
 
 const app = new Function(
   "window","document","localStorage","confirm","alert","setInterval","clearInterval","setTimeout","__exp",
-  appSrc + "\n;__exp(typeof beginExam!=='undefined'?{beginExam,resumableExam,resumeExam,pick,jumpQ,moveQ,askFinishExam,finishExam,quitQuiz,startStudy,checkAnswer,nextStudy,finishStudy,retryWrong,retryStudy,touchStreak,curStreak,toggleSound,playCorrect,confetti,renderHome,renderResults,renderExamReview,rerender,go,UI,t,dayKey,todayStr,yesterdayStr,startExam,discardExam,clearExamSave,toggleFlag,resetProgress,getState:()=>state,setState:s=>{state=s},getGame:()=>game}:{})"
+  appSrc + "\n;__exp(typeof beginExam!=='undefined'?{beginExam,resumableExam,resumeExam,pick,jumpQ,moveQ,askFinishExam,finishExam,quitQuiz,startStudy,checkAnswer,nextStudy,finishStudy,retryWrong,retryStudy,touchStreak,curStreak,toggleSound,playCorrect,confetti,renderHome,renderResults,renderExamReview,rerender,go,UI,t,dayKey,todayStr,yesterdayStr,startExam,discardExam,clearExamSave,toggleFlag,resetProgress,askClaude,toggleHelp,getState:()=>state,setState:s=>{state=s},getGame:()=>game}:{})"
 );
 
 let A;
@@ -235,6 +242,46 @@ ok(!threw && st.mode === "exam" && st.idx === 0 && st.answers.length === 2 &&
    st.answers.every(a => Array.isArray(a)) && st.flags.every(f => f === false),
    "garbage answers/flags/idx are replaced with safe defaults" + (threw ? " but THREW " + threw.message : ""));
 A.clearExamSave();
+
+/* ---------- 12. beginner help + ask Claude ---------- */
+console.log("\n12. beginner help and Ask Claude");
+const viewHtml = () => els["view"].innerHTML;
+const promptOf = o => decodeURIComponent(o.url.split("?q=")[1] || "");
+const helpCount = Object.keys(win.SC300_HELP || {}).length;
+ok(helpCount === 400, "help text loaded for all 400 questions (got " + helpCount + ")");
+A.startStudy(2);
+const hq = A.getState().queue[0];
+let v = viewHtml();
+ok(v.includes(A.UI.en.help_plain) && v.includes(A.UI.en.ask_claude), "before answering: plain-words and Ask Claude buttons shown");
+ok(!v.includes(A.UI.en.help_example), "before answering: NO concrete example (it would give the answer away)");
+ok(!v.includes(esc2(win.SC300_HELP[hq.id].example.en)), "before answering: the example text is not even in the page");
+opened = [];
+A.askClaude(-1);
+ok(opened.length === 1 && opened[0].url.startsWith("https://claude.ai/new"), "Ask Claude opens claude.ai");
+ok(opened[0].features === "noopener,noreferrer", "new tab is isolated (noopener,noreferrer)");
+let pr = promptOf(opened[0]);
+ok(pr.includes(hq.q.en) && !pr.includes(A.UI.en.claude_right) && !pr.includes(hq.explanation.en), "prompt before answering has the question but NOT the answer");
+hq.correct.forEach(c => A.pick(c)); A.checkAnswer();
+v = viewHtml();
+ok(v.includes(A.UI.en.help_example), "after answering: concrete example button appears");
+opened = [];
+A.askClaude(-1);
+pr = promptOf(opened[0]);
+ok(pr.includes(A.UI.en.claude_right) && pr.includes(hq.explanation.en), "prompt after answering includes the answer and explanation");
+A.beginExam();
+v = viewHtml();
+ok(!v.includes(A.UI.en.ask_claude) && !v.includes(A.UI.en.help_plain), "running exam: no help at all");
+opened = [];
+A.askClaude(-1);
+ok(opened.length === 0, "Ask Claude refuses to open during an exam");
+A.getState().queue.forEach((q, i) => { A.jumpQ(i); A.pick(q.correct[0]); });
+A.finishExam(); A.renderExamReview();
+v = viewHtml();
+ok(v.includes(A.UI.en.help_example) && v.includes(A.UI.en.ask_claude), "exam review: example and Ask Claude available");
+opened = [];
+A.askClaude(3);
+ok(opened.length === 1 && promptOf(opened[0]).includes(A.UI.en.claude_right), "Ask Claude from a review card sends that card with its answer");
+A.go("home");
 
 /* ---------- summary ---------- */
 console.log("\n==========================");

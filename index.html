@@ -67,6 +67,10 @@
   .explain .verdict{font-weight:700; margin-bottom:8px;}
   .explain .verdict.ok{color:var(--good);}
   .explain .verdict.ko{color:var(--bad);}
+  /* Beginner help: plain-words rewording, concrete example, ask Claude */
+  .helpbar{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .helpbox{background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-top:12px; font-size:14.5px; white-space:pre-wrap;}
+  .helpbox .hl{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; white-space:normal;}
 
   .quiznav{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:18px; flex-wrap:wrap;}
   .qcounter{color:var(--muted); font-size:13.5px;}
@@ -197,6 +201,10 @@ if(localStorage.getItem("sc300_unlock") === LOCK_HASH){
 <script src="data/questions-d2.js"></script>
 <script src="data/questions-d3.js"></script>
 <script src="data/questions-d4.js"></script>
+<script src="data/help-d1.js"></script>
+<script src="data/help-d2.js"></script>
+<script src="data/help-d3.js"></script>
+<script src="data/help-d4.js"></script>
 <script>
 "use strict";
 /* ============ i18n ============ */
@@ -235,6 +243,12 @@ const UI = {
     resume_exam_t:"Exam in progress", resume_exam:"You have an unfinished mock exam.", time_left:"left",
     resume:"▶ Resume exam", discard:"Discard", confirm_discard:"Discard this unfinished exam?",
     sound_on:"🔊 Sound", sound_off:"🔇 Muted", answered_n:"answered", flagged_n:"marked", back_results:"← Back to my score",
+    help_plain:"💡 I don't get the question", help_example:"🏢 Concrete example", ask_claude:"💬 Ask Claude ↗",
+    help_plain_l:"In plain words", help_example_l:"Concrete example",
+    claude_opened:"Opening Claude in a new tab. The question is also copied: paste it there if it doesn't appear.",
+    claude_hidden:"I'm preparing the Microsoft SC-300 certification and I'm a complete beginner in IT. Explain this question to me in simple words, define the technical terms, and give me a concrete example. Do NOT tell me the answer: I want to find it myself.",
+    claude_shown:"I'm preparing the Microsoft SC-300 certification and I'm a complete beginner in IT. Explain this question and its answer to me in simple words, with a concrete example from a real company, then I'll ask you follow-up questions.",
+    claude_q:"Question", claude_mine:"My answer", claude_right:"Correct answer", claude_expl:"Official explanation",
   },
   fr:{ sub:"Identity and Access Administrator", theory:"📖 Théorie", exam:"⏱ Examen blanc", reset:"↺ Réinitialiser",
     home_title:"Choisis un domaine à étudier", study:"Mode étude", answered:"répondues", correctW:"correctes",
@@ -269,6 +283,12 @@ const UI = {
     resume_exam_t:"Examen en cours", resume_exam:"Tu as un examen blanc non terminé.", time_left:"restantes",
     resume:"▶ Reprendre l'examen", discard:"Abandonner", confirm_discard:"Abandonner cet examen non terminé ?",
     sound_on:"🔊 Son", sound_off:"🔇 Muet", answered_n:"répondues", flagged_n:"marquées", back_results:"← Retour à mon score",
+    help_plain:"💡 Je comprends pas la question", help_example:"🏢 Exemple concret", ask_claude:"💬 Demander à Claude ↗",
+    help_plain_l:"En clair", help_example_l:"Exemple concret",
+    claude_opened:"Claude s'ouvre dans un nouvel onglet. La question est aussi copiée : colle-la si elle n'apparaît pas.",
+    claude_hidden:"Je prépare la certification Microsoft SC-300 et je débute complètement en informatique. Explique-moi cette question avec des mots simples, définis les termes techniques et donne-moi un exemple concret. Ne me donne PAS la réponse : je veux la trouver moi-même.",
+    claude_shown:"Je prépare la certification Microsoft SC-300 et je débute complètement en informatique. Explique-moi cette question et sa réponse avec des mots simples, avec un exemple concret dans une vraie entreprise, ensuite je te poserai mes questions.",
+    claude_q:"Question", claude_mine:"Ma réponse", claude_right:"Bonne réponse", claude_expl:"Explication officielle",
   }
 };
 const t = k => UI[LANG][k] || k;
@@ -383,10 +403,10 @@ function checkBadges(){
     toast(newly.map(b => `${b.icon} ${esc(L(b.name))}`).join(" · "));
   }
 }
-function toast(html){
+function toast(html, icon = "🏅"){
   document.getElementById("toast")?.remove();
   const d = document.createElement("div");
-  d.id = "toast"; d.innerHTML = "🏅 " + html;
+  d.id = "toast"; d.innerHTML = icon + " " + html;
   document.body.appendChild(d);
   setTimeout(()=>d.remove(), 4000);
 }
@@ -859,10 +879,66 @@ function renderExamReview(){
       }).join("")}
       ${!r.sel.length?`<div class="meta">${t("skipped")}</div>`:""}
       <div class="explain">${esc(L(r.q.explanation))}</div>
+      ${helpUI(r.q, i, true)}
     </div>`;
   });
   view().innerHTML = html;
   window.scrollTo(0,0);
+}
+
+/* ============ BEGINNER HELP ============ */
+// `slot` is -1 for the live study question, or the index of a card in the exam review.
+// `revealed` decides what may be shown: before answering, nothing that hints at the answer.
+const helpFor = id => (window.SC300_HELP && window.SC300_HELP[id]) || null;
+function helpUI(q, slot, revealed){
+  const h = helpFor(q.id);
+  const open = slot < 0 ? (state.helpOpen || {}) : {};
+  const btn = (kind, label) => `<button class="btn small" onclick="toggleHelp(${slot},'${kind}')">${t(label)}</button>`;
+  const box = (kind, label, text) =>
+    `<div class="helpbox" id="help${slot}-${kind}"${open[kind] ? "" : " hidden"}><div class="hl">${t(label)}</div>${esc(L(text))}</div>`;
+  let bar = "", boxes = "";
+  if(h){
+    bar += btn("plain", "help_plain");
+    boxes += box("plain", "help_plain_l", h.plain);
+    if(revealed){
+      bar += btn("example", "help_example");
+      boxes += box("example", "help_example_l", h.example);
+    }
+  }
+  bar += `<button class="btn small" onclick="askClaude(${slot})">${t("ask_claude")}</button>`;
+  return `<div class="helpbar">${bar}</div>${boxes}`;
+}
+function toggleHelp(slot, kind){
+  const el = document.getElementById(`help${slot}-${kind}`);
+  if(!el) return;
+  el.hidden = !el.hidden;
+  if(slot < 0) state.helpOpen = Object.assign({}, state.helpOpen, {[kind]: !el.hidden});   // survives the re-render on "Check answer"
+}
+function claudePrompt(q, revealed, sel){
+  const letters = js => js.map(i => "ABCDEF"[i]).join(", ");
+  const sep = LANG === "fr" ? " : " : ": ";
+  let p = t(revealed ? "claude_shown" : "claude_hidden") + "\n\n"
+        + t("claude_q") + sep + L(q.q) + "\n"
+        + q.options.map((o, j) => "ABCDEF"[j] + ". " + L(o)).join("\n");
+  if(revealed){
+    if(sel && sel.length) p += "\n\n" + t("claude_mine") + sep + letters(sel);
+    p += "\n" + t("claude_right") + sep + letters(q.correct)
+       + "\n\n" + t("claude_expl") + sep.trimEnd() + "\n" + L(q.explanation);
+  }
+  return p;
+}
+function askClaude(slot){
+  const inReview = slot >= 0;
+  if(!inReview && state.mode === "exam") return;          // never during a running exam
+  const q = inReview ? state.results[slot].q : state.queue[state.idx];
+  const revealed = inReview || state.locked;
+  const sel = inReview ? state.results[slot].sel : state.selected;
+  const prompt = claudePrompt(q, revealed, sel);
+  try { navigator.clipboard.writeText(prompt).catch(()=>{}); } catch(e) {}
+  // Very long prompts get cut in the URL: open an empty chat instead, the clipboard holds the full text
+  const url = "https://claude.ai/new?q=" + encodeURIComponent(prompt);
+  window.open(url.length <= 6000 ? url : "https://claude.ai/new", "_blank", "noopener,noreferrer");
+  toast(esc(t("claude_opened")), "💬");
 }
 
 /* ============ QUESTION RENDER (study + exam) ============ */
@@ -936,6 +1012,7 @@ function renderQuestion(){
     <div class="qtext">${esc(L(q.q))}${multi?`\n<span style="color:var(--warn);font-size:13px;font-weight:400;">${t("multi_hint")}</span>`:""}</div>
     ${opts}
     ${explain}
+    ${isExam ? "" : helpUI(q, -1, state.locked)}
     <div class="quiznav">
       <span class="qcounter">${t("q")} ${state.idx+1} ${t("of")} ${state.queue.length}</span>
       <div class="flexwrap">${navBtns}</div>
@@ -988,7 +1065,7 @@ function checkAnswer(){
 }
 function nextStudy(){
   if(state.idx >= state.queue.length - 1){ finishStudy(); return; }
-  state.idx++; state.selected = []; state.locked = false;
+  state.idx++; state.selected = []; state.locked = false; state.helpOpen = {};
   renderQuestion();
   window.scrollTo(0,0);
 }

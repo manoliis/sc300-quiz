@@ -15,7 +15,11 @@ Il vérifie aussi deux choses faciles à rater à l'œil :
   doit commencer par un verdict de lettre, couvrir chaque option exactement une fois, et
   marquer « correct » exactement les bonnes réponses déclarées dans `correct`.
 
-**À relancer après chaque ajout de questions.**
+Il contrôle enfin l’aide pour débutants (`data/help-d*.js`) : une entrée par question, texte « en clair »
+et exemple concret dans les deux langues, sans tiret long ni markdown. Le texte « en clair » s’affiche
+AVANT la réponse : le validateur échoue s’il cite la bonne option sans citer aussi les mauvaises.
+
+**À relancer après chaque ajout de questions, et écrire l’aide de chaque nouvelle question.**
 
 ## `node tests/smoke.js`
 Rejoue les parcours utilisateur de `index.html` sans navigateur : il simule un DOM et un
@@ -24,5 +28,7 @@ Couvre : cohérence des textes EN/FR, existence de tous les handlers `onclick`, 
 locale, sauvegarde et reprise d'un examen, alerte avant de soumettre un examen incomplet,
 état de l'écran résultats/revue, confirmations avant de quitter, seuil de confettis à 70 %,
 « revoir mes erreurs », bouton muet, et rejet d'un localStorage corrompu sans plantage.
+Et l’aide : pas d’exemple concret ni de réponse envoyée à Claude avant d’avoir répondu, rien pendant un examen,
+tout dans la revue d’examen, nouvel onglet Claude isolé (`noopener,noreferrer`).
 
 Les deux sortent en code 1 si quelque chose casse.

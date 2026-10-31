@@ -60,3 +60,14 @@ Données : 200 questions, 0 doublon d'ID, 0 doublon de texte, bilingue complet, 
 
 ## État : 400 questions validées (100 par domaine), app fonctionnelle. Ouvrir index.html dans le navigateur.
 ## Reste à faire : rien de bloquant. Étoffer la théorie D3/D4 (2 sections chacune, contre 4 pour D1) serait le prochain gain.
+
+## Aide à la compréhension (2026-10-31)
+Demande de Manolis : « des questions je les comprends pas du tout », explications si besoin + exemples concrets + IA.
+Choix validé : contenu écrit pour les 400 questions + bouton « Demander à Claude » (ouvre claude.ai, gratuit, aucune clé API).
+- [x] 25. Générer `data/help-d1..d4.js` : pour chaque question `plain` (reformulation simple, termes définis, SANS indice de réponse)
+      et `example` (scénario d'entreprise concret qui montre pourquoi la bonne réponse marche), EN + FR
+- [x] 26. index.html : bouton « Je comprends pas » (avant réponse), « Exemple concret » (après réponse),
+      « Demander à Claude » (prompt sans réponse avant, avec réponse après). Rien pendant un examen ; tout dans la revue d'examen
+- [x] 27. validate-data.js : chaque question a son aide bilingue, pas de tiret cadratin, `plain` ne recopie pas la bonne option
+- [x] 28. smoke.js : boutons présents/absents selon le mode, prompt Claude sans réponse avant vérification
+- [x] 29. Audit sécurité (pré + post), tests verts, commit + push, vérifier le site en ligne

@@ -70,9 +70,36 @@ for (const q of all) {
   }
 }
 
+// Beginner help (data/help-d*.js): one entry per question, bilingual, clean text, and the
+// "plain words" part is shown BEFORE answering, so it must not quote the right option.
+for (const d of ["d1", "d2", "d3", "d4"]) require(path.join(ROOT, "data", "help-" + d + ".js"));
+const HELP = window.SC300_HELP || {};
+const qIds = new Set(all.map(q => q.id));
+Object.keys(HELP).filter(id => !qIds.has(id)).forEach(id => issues.push("help for unknown question " + id));
+for (const q of all) {
+  const h = HELP[q.id];
+  if (!h) { issues.push(q.id + ": no beginner help"); continue; }
+  for (const part of ["plain", "example"]) for (const lang of ["en", "fr"]) {
+    const s = h[part] && h[part][lang];
+    if (typeof s !== "string" || s.trim().length < 80) { issues.push(q.id + ": help " + part + "." + lang + " missing or too short"); continue; }
+    if (/[–—]/.test(s)) issues.push(q.id + ": help " + part + "." + lang + " contains a long dash");
+    if (/\*\*|^#|^\s*[-*•] /m.test(s)) issues.push(q.id + ": help " + part + "." + lang + " contains markdown");
+  }
+  for (const lang of ["en", "fr"]) {
+    // Defining every option by name is the point of this help, so quoting the right option is
+    // fine as long as wrong ones are quoted too. A giveaway is quoting ONLY the right one(s).
+    const plain = norm(h.plain[lang] || "");
+    const quoted = j => plain.includes(norm(q.options[j][lang]));
+    const rightQuoted = q.correct.some(c => norm(q.options[c][lang]).length >= 30 && quoted(c));
+    const wrongQuoted = q.options.some((_, j) => !q.correct.includes(j) && quoted(j));
+    if (rightQuoted && !wrongQuoted) issues.push(q.id + " (" + lang + "): plain-words help quotes only the correct option");
+  }
+}
+
 console.log("total: " + all.length + " questions (" + banks.map((b, i) => "D" + (i + 1) + "=" + b.length).join(" ") + ")");
 console.log("multi-answer: " + all.filter(q => q.correct.length > 1).length);
 console.log("answer positions: " + spread);
+console.log("beginner help: " + Object.keys(HELP).length + " entries");
 console.log("theory: " + (window.SC300_THEORY || []).map(t => "D" + t.domain + "=" + t.sections.length + " sections").join(" "));
 if (issues.length) { console.log("\n" + issues.length + " ISSUE(S):"); issues.forEach(i => console.log("  - " + i)); process.exit(1); }
 console.log("\nOK - no issues.");
