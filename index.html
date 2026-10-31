@@ -229,7 +229,9 @@ const UI = {
     custom_title:"Custom quiz", custom_pick:"Which domains?", custom_n:"How many questions?",
     all_of_them:"All", available:"available", start_quiz:"Start quiz", first_time:"first time",
     custom_timer:"Timer? (whole session)", no_timer:"None", min:"min", per_q:"1 min / question",
-    focus_weak:"🧠 Focus my weak questions", status_title:"Exam readiness",
+    custom_which:"Which questions?", pick_mix:"🔀 Mix (all)", pick_new:"🆕 New only", pick_weak:"🧠 My weak questions",
+    none_new:"You have already seen every question in these domains. Pick \"Mix\" or \"My weak questions\".",
+    none_weak:"No weak question in these domains yet: you have not got any of them wrong.",status_title:"Exam readiness",
     r_low:"Keep going — do quizzes and read the theory.", r_mid:"Good progress — target your weak questions.",
     r_high:"Almost ready — chain mock exams to confirm.", r_ready:"You're ready! Book the exam 🎉",
     hint_theory:"📖 Theory left to read:", hint_unseen:"never-seen questions", hint_exam:"⏱ Take a mock exam to refine this score",
@@ -269,7 +271,9 @@ const UI = {
     custom_title:"Quiz personnalisé", custom_pick:"Quels domaines ?", custom_n:"Combien de questions ?",
     all_of_them:"Toutes", available:"disponibles", start_quiz:"Lancer le quiz", first_time:"première fois",
     custom_timer:"Chrono ? (toute la session)", no_timer:"Sans", min:"min", per_q:"1 min / question",
-    focus_weak:"🧠 Cibler mes questions faibles", status_title:"Préparation à l'examen",
+    custom_which:"Quelles questions ?", pick_mix:"🔀 Mélange (toutes)", pick_new:"🆕 Seulement des nouvelles", pick_weak:"🧠 Mes questions faibles",
+    none_new:"Tu as déjà vu toutes les questions de ces domaines. Choisis « Mélange » ou « Mes questions faibles ».",
+    none_weak:"Aucune question faible dans ces domaines pour l'instant : tu n'en as encore raté aucune.",status_title:"Préparation à l'examen",
     r_low:"Continue — fais des quiz et lis la théorie.", r_mid:"Bon progrès — cible tes questions faibles.",
     r_high:"Presque prêt — enchaîne les examens blancs pour confirmer.", r_ready:"Tu es prêt ! Réserve l'examen 🎉",
     hint_theory:"📖 Théorie à lire :", hint_unseen:"questions jamais vues", hint_exam:"⏱ Fais un examen blanc pour affiner ce score",
@@ -611,11 +615,32 @@ function startReview(){
 }
 
 /* ============ CUSTOM QUIZ ============ */
-let customCfg = store.get("customCfg", {doms:[1,2,3,4], count:10, timer:"auto"});
-if(customCfg.timer === undefined) customCfg.timer = "auto";
+// localStorage is user-editable: keep only known values, fall back to defaults otherwise
+function cleanCustomCfg(c){
+  c = (c && typeof c === "object") ? c : {};
+  const doms = Array.isArray(c.doms) ? [...new Set(c.doms.filter(d => [1,2,3,4].includes(d)))].sort() : [1,2,3,4];
+  const pick = ["mix","new","weak"].includes(c.pick) ? c.pick : (c.focus === true ? "weak" : "mix");   // "focus" was the old on/off weak mode
+  return {
+    doms,
+    count: [5,10,20,30,50,"all"].includes(c.count) ? c.count : 10,
+    timer: [0,"auto",5,10,15,30].includes(c.timer) ? c.timer : "auto",
+    pick,
+  };
+}
+let customCfg = cleanCustomCfg(store.get("customCfg", null));
+// "new" = never answered; "weak" = got wrong at least once, most-missed first (with a little randomness)
+function customPool(){
+  const pool = customCfg.doms.flatMap(bank);
+  if(customCfg.pick === "new") return shuffle(pool.filter(q => !(progress[q.id] && progress[q.id].seen)));
+  if(customCfg.pick === "weak") return pool
+    .filter(q => { const st = progress[q.id]; return st && st.seen > st.ok; })
+    .map(q => ({q, w: (progress[q.id].seen - progress[q.id].ok) / progress[q.id].seen + Math.random()*0.3}))
+    .sort((a,b) => b.w - a.w).map(x => x.q);
+  return shuffle(pool);
+}
 function renderCustom(){
   state.screen = "custom";
-  const avail = customCfg.doms.flatMap(bank).length;
+  const avail = customPool().length;
   const domChips = DOMAINS.map(d =>
     `<span class="chip ${customCfg.doms.includes(d.id)?'on':''}" onclick="toggleDom(${d.id})">${d.id}. ${esc(L(d.name))}</span>`
   ).join("");
@@ -623,7 +648,9 @@ function renderCustom(){
   const countChips = counts.map(n =>
     `<span class="chip ${customCfg.count===n?'on':''}" onclick="setCount(${n})">${n}</span>`
   ).join("") + `<span class="chip ${customCfg.count==='all'?'on':''}" onclick="setCount('all')">${t("all_of_them")}</span>`;
-  const focusChip = `<span class="chip ${customCfg.focus?'on':''}" onclick="toggleFocus()">${t("focus_weak")}</span>`;
+  const pickChips = ["mix","new","weak"].map(p =>
+    `<span class="chip ${customCfg.pick===p?'on':''}" onclick="setPick('${p}')">${t("pick_"+p)}</span>`
+  ).join("");
   const timerChips = `<span class="chip ${customCfg.timer===0?'on':''}" onclick="setTimerMin(0)">${t("no_timer")}</span>` +
     `<span class="chip ${customCfg.timer==='auto'?'on':''}" onclick="setTimerMin('auto')">⏱ ${t("per_q")}</span>` +
     [5,10,15,30].map(m =>
@@ -636,14 +663,17 @@ function renderCustom(){
     <div class="meta">${t("shuffle")}</div>
     <div class="section-title">${t("custom_pick")}</div>
     <div class="flexwrap">${domChips}</div>
+    <div class="section-title">${t("custom_which")}</div>
+    <div class="flexwrap">${pickChips}</div>
     <div class="section-title">${t("custom_n")}</div>
     <div class="flexwrap">${countChips}</div>
     <div class="section-title">⏱ ${t("custom_timer")}</div>
     <div class="flexwrap">${timerChips}</div>
-    <div class="mt">${focusChip}</div>
-    <div class="meta mt">${avail} ${t("questions")} ${t("available")}</div>
+    <div class="meta mt">${avail || customCfg.pick === "mix" || !customCfg.doms.length
+      ? avail + " " + t("questions") + " " + t("available")
+      : t(customCfg.pick === "new" ? "none_new" : "none_weak")}</div>
     <div class="mt">
-      <button class="btn primary" onclick="startCustom()" ${customCfg.doms.length?"":"disabled"}>${t("start_quiz")} →</button>
+      <button class="btn primary" onclick="startCustom()" ${avail?"":"disabled"}>${t("start_quiz")} →</button>
     </div>
   </div>`;
 }
@@ -662,25 +692,15 @@ function setTimerMin(m){
   store.set("customCfg", customCfg);
   renderCustom();
 }
-function toggleFocus(){
-  customCfg.focus = !customCfg.focus;
+function setPick(p){
+  if(!["mix","new","weak"].includes(p)) return;
+  customCfg.pick = p;
   store.set("customCfg", customCfg);
   renderCustom();
 }
 function startCustom(){
-  let qs;
-  const pool = customCfg.doms.flatMap(bank);
-  if(!pool.length){ alert(t("no_q")); return; }
-  if(customCfg.focus){
-    // weight questions by failure rate: failed > unseen > mastered, with some randomness
-    qs = pool.map(q => {
-      const st = progress[q.id];
-      const fail = (st && st.seen) ? (st.seen - st.ok) / st.seen : 0.6;
-      return {q, w: fail + Math.random()*0.4};
-    }).sort((a,b) => b.w - a.w).map(x => x.q);
-  } else {
-    qs = shuffle(pool);
-  }
+  let qs = customPool();
+  if(!qs.length){ renderCustom(); return; }
   if(customCfg.count !== "all") qs = qs.slice(0, customCfg.count);
   state = {screen:"quiz", mode:"study", queue:qs, idx:0, selected:[], locked:false};
   const minutes = customCfg.timer === "auto" ? qs.length : customCfg.timer;

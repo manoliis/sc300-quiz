@@ -59,7 +59,7 @@ win.AudioContext = function(){ return { currentTime:0, createOscillator:()=>{ so
 
 const app = new Function(
   "window","document","localStorage","confirm","alert","setInterval","clearInterval","setTimeout","__exp",
-  appSrc + "\n;__exp(typeof beginExam!=='undefined'?{beginExam,resumableExam,resumeExam,pick,jumpQ,moveQ,askFinishExam,finishExam,quitQuiz,startStudy,checkAnswer,nextStudy,finishStudy,retryWrong,retryStudy,touchStreak,curStreak,toggleSound,playCorrect,confetti,renderHome,renderResults,renderExamReview,rerender,go,UI,t,dayKey,todayStr,yesterdayStr,startExam,discardExam,clearExamSave,toggleFlag,resetProgress,askClaude,toggleHelp,getState:()=>state,setState:s=>{state=s},getGame:()=>game}:{})"
+  appSrc + "\n;__exp(typeof beginExam!=='undefined'?{beginExam,resumableExam,resumeExam,pick,jumpQ,moveQ,askFinishExam,finishExam,quitQuiz,startStudy,checkAnswer,nextStudy,finishStudy,retryWrong,retryStudy,touchStreak,curStreak,toggleSound,playCorrect,confetti,renderHome,renderResults,renderExamReview,rerender,go,UI,t,dayKey,todayStr,yesterdayStr,startExam,discardExam,clearExamSave,toggleFlag,resetProgress,askClaude,toggleHelp,cleanCustomCfg,customPool,setPick,toggleDom,startCustom,getCfg:()=>customCfg,getState:()=>state,setState:s=>{state=s},getGame:()=>game}:{})"
 );
 
 let A;
@@ -282,6 +282,37 @@ opened = [];
 A.askClaude(3);
 ok(opened.length === 1 && promptOf(opened[0]).includes(A.UI.en.claude_right), "Ask Claude from a review card sends that card with its answer");
 A.go("home");
+
+/* ---------- 13. custom quiz: new only / mix / weak ---------- */
+console.log("\n13. custom quiz question choice");
+const C = A.cleanCustomCfg;
+ok(C({focus:true}).pick === "weak", "old saved setting 'focus my weak questions' becomes 'weak'");
+ok(C(null).pick === "mix" && C(null).count === 10 && C(null).timer === "auto" && C(null).doms.length === 4, "nothing saved -> safe defaults");
+const bad2 = C({pick:"__proto__", count:"abc", timer:-5, doms:[99, 2, 2, "1"]});
+ok(bad2.pick === "mix" && bad2.count === 10 && bad2.timer === "auto" && JSON.stringify(bad2.doms) === "[2]", "tampered values are replaced, unknown domains dropped");
+confirmAnswer = true; A.resetProgress();
+A.setPick("weak"); A.toggleDom(2); A.toggleDom(3); A.toggleDom(4);     // keep domain 1 only
+ok(JSON.stringify(A.getCfg().doms) === "[1]" && A.customPool().length === 0, "no mistakes yet -> no weak question");
+ok(els["view"].innerHTML.includes(A.UI.en.none_weak) && /disabled/.test(els["view"].innerHTML), "says so and disables Start instead of an empty quiz");
+A.setPick("new");
+ok(A.customPool().length === 100, "fresh progress -> all 100 domain-1 questions are new");
+A.startStudy(1);
+const wq = A.getState().queue[0];
+A.pick(wq.options.findIndex((_, j) => !wq.correct.includes(j))); A.checkAnswer();
+A.nextStudy();
+const rq = A.getState().queue[1];
+rq.correct.forEach(c => A.pick(c)); A.checkAnswer();
+A.go("custom");
+ok(A.customPool().length === 98 && !A.customPool().some(q => q.id === wq.id || q.id === rq.id), "'new only' drops the 2 answered questions");
+A.setPick("weak");
+ok(A.customPool().length === 1 && A.customPool()[0].id === wq.id, "'weak' holds only the one I got wrong");
+A.setPick("mix");
+ok(A.customPool().length === 100, "'mix' still offers all 100");
+A.setPick("evil");
+ok(A.getCfg().pick === "mix", "an unknown choice is ignored");
+A.setPick("weak"); A.startCustom();
+ok(A.getState().screen === "quiz" && A.getState().queue.length === 1, "starting 'weak' launches a quiz with that question");
+A.go("home"); A.toggleDom(2); A.toggleDom(3); A.toggleDom(4); A.setPick("mix");
 
 /* ---------- summary ---------- */
 console.log("\n==========================");

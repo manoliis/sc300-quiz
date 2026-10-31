@@ -27,7 +27,7 @@ localStorage minimaux, évalue le vrai `<script>` de la page, puis pilote l'app.
 Couvre : cohérence des textes EN/FR, existence de tous les handlers `onclick`, streak en date
 locale, sauvegarde et reprise d'un examen, alerte avant de soumettre un examen incomplet,
 état de l'écran résultats/revue, confirmations avant de quitter, seuil de confettis à 70 %,
-« revoir mes erreurs », bouton muet, et rejet d'un localStorage corrompu sans plantage.
+« revoir mes erreurs », bouton muet, choix « nouvelles / mélange / faibles » du quiz personnalisé, et rejet d'un localStorage corrompu sans plantage.
 Et l’aide : pas d’exemple concret ni de réponse envoyée à Claude avant d’avoir répondu, rien pendant un examen,
 tout dans la revue d’examen, nouvel onglet Claude isolé (`noopener,noreferrer`).
 

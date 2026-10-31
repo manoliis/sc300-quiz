@@ -81,3 +81,10 @@ Question, options, explication ET aide (en clair + exemple) mises à jour ensemb
 - [x] 32. D3 : d3-023 (Azure Arc et managed identities), d3-085 (application access policy dépassée par RBAC for Applications)
 - [x] 33. D4 : d4-013 (réponse blague), d4-039 (requête KQL), d4-042 (PIM for Groups), d4-083 (revue d'un groupe dynamique), d4-090 (organisation « Proposed »)
 - [x] 34. Tests verts, commit + push, vérification en ligne
+
+## Choix des questions du quiz personnalisé (2026-10-31)
+Demande de Manolis : pouvoir choisir « que des nouvelles », « mix » ou « juste les questions faibles ».
+- [x] 35. Remplacer l'interrupteur « Cibler mes questions faibles » par 3 choix : Mélange | Seulement des nouvelles (jamais répondues) | Mes questions faibles (déjà ratées au moins une fois, les plus ratées d'abord)
+- [x] 36. Nombre de questions disponibles calculé selon le choix ; message clair et bouton désactivé s'il n'y en a aucune
+- [x] 37. Réglages relus du localStorage validés (choix, domaines, nombre, chrono), ancien réglage « focus » migré
+- [x] 38. 11 tests ajoutés (72 au total, tous verts) + vérification visuelle dans le navigateur
