@@ -71,3 +71,13 @@ Choix validé : contenu écrit pour les 400 questions + bouton « Demander à Cl
 - [x] 27. validate-data.js : chaque question a son aide bilingue, pas de tiret cadratin, `plain` ne recopie pas la bonne option
 - [x] 28. smoke.js : boutons présents/absents selon le mode, prompt Claude sans réponse avant vérification
 - [x] 29. Audit sécurité (pré + post), tests verts, commit + push, vérifier le site en ligne
+
+## Mise à jour des questions dépassées (2026-10-31)
+Demande de Manolis : « améliore les questions si elles ne sont plus d'actualité ».
+Les 13 questions signalées pendant la rédaction de l'aide, chacune revérifiée sur Microsoft Learn.
+Question, options, explication ET aide (en clair + exemple) mises à jour ensemble.
+- [x] 30. D1 : d1-009 (Cloud Sync et PTA), d1-011 (« hidden membership »), d1-085 et d1-092 (noms de rôles)
+- [x] 31. D2 : d2-062 (restauration des politiques CA supprimées), d2-100 (qui peut réinitialiser le mot de passe d'un admin)
+- [x] 32. D3 : d3-023 (Azure Arc et managed identities), d3-085 (application access policy dépassée par RBAC for Applications)
+- [x] 33. D4 : d4-013 (réponse blague), d4-039 (requête KQL), d4-042 (PIM for Groups), d4-083 (revue d'un groupe dynamique), d4-090 (organisation « Proposed »)
+- [x] 34. Tests verts, commit + push, vérification en ligne
